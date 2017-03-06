@@ -27,8 +27,23 @@ double getTime(void) {
 #include "560light.c"
 #include "590shadow.c"
 
+
+typedef struct MyObject MyObject;
+	struct MyObject {
+    	dBodyID body;
+		dGeomID geom;
+	};
+
+static dWorldID world;
+static dSpaceID space;
+static dGeomID ground;
+static dJointGroupID contactgroup;
+static int flag = 0;
+
+MyObject sphere;
+
 camCamera cam;
-texTexture texH;
+texTexture texH, texBall;
 meshGLMesh floorGL, sphereGL;
 sceneNode nodeFloor, nodeSphere;
 /* We need just one shadow program, because all of our meshes have the same
@@ -114,6 +129,9 @@ returns. */
 int initializeScene(void) {
 	if (texInitializeFile(&texH, "grass.jpg", GL_LINEAR, GL_LINEAR,
     		GL_REPEAT, GL_REPEAT) != 0)
+		return 1;
+	if (texInitializeFile(&texBall, "granite.jpg", GL_LINEAR, GL_LINEAR,
+		GL_REPEAT, GL_REPEAT) != 0)
     return 1;
 
 	GLuint attrDims[3] = {3, 2, 3};
@@ -171,6 +189,7 @@ int initializeScene(void) {
 	sceneSetUniform(&nodeSphere, unif);
 	tex = &texH;
 	sceneSetTexture(&nodeFloor, &tex);
+	tex = &texBall;
 	sceneSetTexture(&nodeSphere, &tex);
 	return 0;
 }
