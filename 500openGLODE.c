@@ -6,19 +6,15 @@
 #include <GLFW/glfw3.h>
 #include <ode/ode.h>
 
-#ifdef dDOUBLE
-#define dsDrawBox      dsDrawBoxD
-#define dsDrawSphere   dsDrawSphereD
-#define dsDrawCylinder dsDrawCylinderD
-#define dsDrawCapsule  dsDrawCapsuleD
-#define dsDrawLine     dsDrawLineD
-#endif
+
 
 #define DENSITY (5.0)
+
 typedef struct MyObject MyObject;
-struct MyObject {
-    dBodyID body;
-};
+	struct MyObject {
+    	dBodyID body;
+		dGeomID geom;
+	};
 
 dReal radius = 0.25;
 dReal length = 1.0;
@@ -28,8 +24,10 @@ static dWorldID world;
 static dSpaceID space;
 static dGeomID ground;
 static dJointGroupID contactgroup;
+static int flag = 0;
+
 static MyObject sphere; //box, capsule, cylinder;
-static 
+
 
 void handleError(int error, const char *description) {
 	fprintf(stderr, "handleError: %d\n%s\n", error, description);
@@ -74,6 +72,32 @@ GLuint triangles[triNum * 3] = {
 	0, 3, 5};
 /* We'll use this angle to animate a rotation of the mesh. */
 GLdouble alpha = 0.0;
+//Collision handler
+static void nearCallback(void *data, dGeomID o1, dGeomID o2)
+{
+  const int N = 10;
+  dContact contact[N];
+
+  //int isGround = ((ground == o1) || (ground == o2));
+
+  int n =  dCollide(o1,o2,N,&contact[0].geom,sizeof(dContact));
+
+  //if (isGround)  {
+	if (n >= 1) 
+		flag = 1;
+    else        
+		flag = 0;
+    for (int i = 0; i < n; i++) {
+      contact[i].surface.mode = dContactBounce;
+      contact[i].surface.mu   = dInfinity;
+      contact[i].surface.bounce     = 0.0; // (0.0~1.0) restitution parameter
+      contact[i].surface.bounce_vel = 0.0; // minimum incoming velocity for bounce
+      dJointID c = dJointCreateContact(world,contactgroup,&contact[i]);
+      dJointAttach (c,dGeomGetBody(contact[i].geom.g1),dGeomGetBody(contact[i].geom.g2));
+    
+  }
+}
+
 
 void render(void) {
 	/* Clear not just the color buffer, but also the depth buffer. */
@@ -105,26 +129,44 @@ void render(void) {
 	glColorPointer(3, GL_DOUBLE, 0, colors);
 	/* Draw the triangles, each one a triple of attribute array indices. */
     glDrawElements(GL_TRIANGLES, triNum * 3, GL_UNSIGNED_INT, triangles);
+   
+   //simulate collisions
+    const dReal *pos1,*R1;//,*pos2,*R2,*pos3,*R3;
+   	flag = 0;
+	dSpaceCollide(space, 0, &nearCallback);
+	dWorldStep(world, 0.01);
+	dJointGroupEmpty(contactgroup);
 
 	//draw sphere
-	const dReal *pos1,*R1;//,*pos2,*R2,*pos3,*R3;
+	
 	pos1 = dBodyGetPosition(sphere.body); // get a body position
     R1   = dBodyGetRotation(sphere.body); // get a body rotation matrix
-	// printf("%f\n", pos1[0]);
+	printf("pos = %f /n", pos1[2] );
+	//Draw sphere (pos1, R1)
+
+	
 }
 
-int main(void) {
-    dInitODE();
+int main(int argc, char *argv[]) {
+    //ODE inits
+	dInitODE();
 	world = dWorldCreate();
+	space = dHashSpaceCreate(0);
+	contactgroup = dJointGroupCreate(0);
+	//Graviga
+	dWorldSetGravity(world, 0, 0, -0.3);
+	ground = dCreatePlane(space, 0, 0, 1, 0);
 
-	dMass m;
-	dMassSetZero (&m);
     //Make a sphere
-	sphere.body = dBodyCreate (world);
+	dMass m;
 	dReal radius = 0.5;
+	sphere.body = dBodyCreate (world);
+
+	dMassSetZero (&m);
 	dMassSetSphere (&m, DENSITY, radius);
 	dBodySetMass (sphere.body, &m);
 	dBodySetPosition(sphere.body, 0, 1, 1);
+	
 	sphere.geom = dCreateSphere(space, radius);
 	dGeomSetBody(sphere.geom, sphere.body);
 
@@ -170,5 +212,7 @@ int main(void) {
     }
 	glfwDestroyWindow(window);
     glfwTerminate();
+	dWorldDestroy(world);
+	dCloseODE();
     return 0;
 }
