@@ -25,7 +25,11 @@ dReal length = 1.0;
 dReal sides[3] = {0.5, 0.5, 1.0};
 
 static dWorldID world;
+static dSpaceID space;
+static dGeomID ground;
+static dJointGroupID contactgroup;
 static MyObject sphere; //box, capsule, cylinder;
+static 
 
 void handleError(int error, const char *description) {
 	fprintf(stderr, "handleError: %d\n%s\n", error, description);
@@ -121,6 +125,8 @@ int main(void) {
 	dMassSetSphere (&m, DENSITY, radius);
 	dBodySetMass (sphere.body, &m);
 	dBodySetPosition(sphere.body, 0, 1, 1);
+	sphere.geom = dCreateSphere(space, radius);
+	dGeomSetBody(sphere.geom, sphere.body);
 
 	glfwSetErrorCallback(handleError);
     if (glfwInit() == 0)
