@@ -25,7 +25,7 @@ dReal length = 1.0;
 dReal sides[3] = {0.5, 0.5, 1.0};
 
 static dWorldID world;
-static MyObject sphere, box, capsule, cylinder;
+static MyObject sphere; //box, capsule, cylinder;
 
 void handleError(int error, const char *description) {
 	fprintf(stderr, "handleError: %d\n%s\n", error, description);
@@ -103,10 +103,10 @@ void render(void) {
     glDrawElements(GL_TRIANGLES, triNum * 3, GL_UNSIGNED_INT, triangles);
 
 	//draw sphere
-	const dReal *pos1,*R1,*pos2,*R2,*pos3,*R3;
+	const dReal *pos1,*R1;//,*pos2,*R2,*pos3,*R3;
 	pos1 = dBodyGetPosition(sphere.body); // get a body position
     R1   = dBodyGetRotation(sphere.body); // get a body rotation matrix
-	printf("%f\n", pos1[0]);
+	// printf("%f\n", pos1[0]);
 }
 
 int main(void) {
