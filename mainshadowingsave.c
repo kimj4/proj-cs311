@@ -29,8 +29,8 @@ double getTime(void) {
 
 camCamera cam;
 texTexture texH;
-meshGLMesh floorGL;
-sceneNode nodeFloor;
+meshGLMesh floorGL, sphereGL;
+sceneNode nodeFloor, nodeSphere;
 /* We need just one shadow program, because all of our meshes have the same
 attribute structure. */
 shadowProgram sdwProg;
@@ -119,9 +119,13 @@ int initializeScene(void) {
 	GLuint attrDims[3] = {3, 2, 3};
 
 	// NEW ADDITIONS FOR PHYSICS ENGINE ===========
-	meshMesh floor;
-	if (meshInitializeBox(&floor, 250.0, 250.0, 250.0, 250.0, 25.0, 25.0) != 0) {
+	meshMesh floor, sphere;
+	if (meshInitializeBox(&floor, -100.0, 100.0, -100.0, 100.0, -1.0, 1.0) != 0) {
 		return 20;
+	}
+
+	if (meshInitializeSphere(&sphere, 5, 20, 20)) {
+		return 21;
 	}
 
 	double *vert, normal[2];
@@ -139,19 +143,35 @@ int initializeScene(void) {
 	meshGLVAOInitialize(&floorGL, 2, sdwProg2.attrLocs);
 	meshDestroy(&floor);
 
-	if (sceneInitialize(&nodeFloor, 3, 1, &floorGL, NULL, NULL) != 0) {
+	meshGLInitialize(&sphereGL, &sphere, 3, attrDims, 3);
+	meshGLVAOInitialize(&sphereGL, 0, attrLocs);
+	meshGLVAOInitialize(&sphereGL, 1, sdwProg.attrLocs);
+	meshGLVAOInitialize(&sphereGL, 2, sdwProg2.attrLocs);
+	meshDestroy(&sphere);
+
+	
+
+	if (sceneInitialize(&nodeSphere, 3, 1, &sphereGL, NULL, NULL) != 0) {
+		return 22;
+	}
+
+	if (sceneInitialize(&nodeFloor, 3, 1, &floorGL, &nodeSphere, NULL) != 0) {
 		return 21;
 	}
 
-	GLdouble trans[3] = {40.0, 28.0, 5.0};
-	GLdouble unif[3] = {1.0, 1.0, 1.0};
 	texTexture *tex;
 
-
+	GLdouble trans[3] = {0.0, 0.0, 0.0};
 	sceneSetTranslation(&nodeFloor, trans);
+	GLdouble unif[3] = {1.0, 1.0, 1.0};
 	sceneSetUniform(&nodeFloor, unif);
+	
+	vecSet(3, trans, 0.0, 0.0, 10.0);
+	sceneSetTranslation(&nodeSphere, trans);
+	sceneSetUniform(&nodeSphere, unif);
 	tex = &texH;
 	sceneSetTexture(&nodeFloor, &tex);
+	sceneSetTexture(&nodeSphere, &tex);
 	return 0;
 }
 

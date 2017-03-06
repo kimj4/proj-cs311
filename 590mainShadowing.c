@@ -111,6 +111,7 @@ midway through, then does not properly deallocate all resources. But that's
 okay, because the program terminates almost immediately after this function
 returns. */
 int initializeScene(void) {
+	// note: meshInitializeBox requires negative to positive values.
 	if (texInitializeFile(&texH, "grass.jpg", GL_LINEAR, GL_LINEAR,
     		GL_REPEAT, GL_REPEAT) != 0)
     	return 1;
@@ -198,7 +199,7 @@ int initializeScene(void) {
 	meshGLVAOInitialize(&meshT, 1, sdwProg.attrLocs);
 	meshGLVAOInitialize(&meshT, 2, sdwProg2.attrLocs);
 	meshDestroy(&mesh);
-	if (meshInitializeCapsule(&mesh, 5.0, 8, 16, 20) != 0)
+	if (meshInitializeBox(&mesh, -5, 5, -5, 5, -5, 5) != 0)
 		return 11;
 	meshGLInitialize(&meshL, &mesh, 3, attrDims, 3);
 	meshGLVAOInitialize(&meshL, 0, attrLocs);
@@ -275,7 +276,6 @@ int initializeCameraLight(void) {
 		return 1;
 	if (shadowMapInitialize(&sdwMap, 1024, 1024) != 0)
 		return 2;
-
 	vecSet(3, vec, 40.0, 40.0, 5.0);
 	camSetControls(&cam, camPERSPECTIVE, M_PI / 6.0, 10.0, 768.0, 768.0, 100.0,
 								 M_PI / 4.0, M_PI / 4.0, vec);
@@ -390,12 +390,8 @@ void render(void) {
 	shadowMapRender(&sdwMap, &sdwProg, &light, -100.0, -1.0);
 	shadowMapRender(&sdwMap2, &sdwProg2, &light2, -100.0, -1.0);
 
-	// sceneRender(sceneNode *node, GLdouble parent[4][4], GLint modelingLoc,
-	// 	GLuint attrNum, GLuint attrDims[], GLint attrLocs[], GLuint VAOindex, GLint *textureLocs)
-
 	sceneRender(&nodeH, identity, sdwProg.modelingLoc, 0, NULL, NULL, 1,
 		sdwTextureLocs);
-	// printf("render: sceneRender on shadow finishes\n");
 
 	/* Finish preparing the shadow maps, restore the viewport, and begin to
 	render the scene. */
