@@ -195,6 +195,9 @@ int meshInitializeRectangle(meshMesh *mesh, GLdouble left, GLdouble right,
 		vecSet(4, attr, left, top, 0.0, 1.0);
 		meshSetVertex(mesh, 3, attr);
 	}
+	//Create TriMesh struct dTriMesh DataID rectData = dGeomTriMeshDataCreate();
+	//Add data to triMesh struct dGeomTriMeshDataBuildSimple(rectMesh, .., ..);
+	//Create body/geom from TriMesh struct dCreateTriMesh(space, data, callback function, arraycallback function, raycallback function);
 	return error;
 }
 
