@@ -72,6 +72,7 @@ GLuint triangles[triNum * 3] = {
 	0, 3, 5};
 /* We'll use this angle to animate a rotation of the mesh. */
 GLdouble alpha = 0.0;
+
 //Collision handler
 static void nearCallback(void *data, dGeomID o1, dGeomID o2)
 {
