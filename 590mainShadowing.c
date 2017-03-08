@@ -164,7 +164,14 @@ int initializeScene(void) {
 		return 7;
 	/* There are now two VAOs per mesh. */
 	// changes: there are 3 to accomodate 2 light sources
-	meshGLInitialize(&meshH, &mesh, 3, attrDims, 3);
+//meshGLODE usage here
+	dTriMeshDataID meshData = dGeomTriMeshDataCreate(); //put into initializer
+	meshGLODEInitialize(&meshGLODE, &mesh, 3, attrDims, 3);
+	dGeomTriMeshDataBuildSingle(meshData, meshGLODE->vert, 3 * sizeof(dReal), meshGLODE.meshGL->vertNum, meshGLODE->tri,
+		 3 * meshGLODE.meshGL->triNum, 3 * sizeof(unsigned int));
+	meshLGODE->geom = dCreateTriMesh(space, Data, 0, 0, 0); //put into initializer
+	//pass meshGLODE to a sceneNode
+//meshGLODE end usage
 	meshGLVAOInitialize(&meshH, 0, attrLocs);
 	meshGLVAOInitialize(&meshH, 1, sdwProg.attrLocs);
 	meshGLVAOInitialize(&meshH, 2, sdwProg2.attrLocs);

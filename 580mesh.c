@@ -11,28 +11,33 @@ struct meshMesh {
 
 typedef struct meshGLODE meshGLODE;
 struct meshGLODE {
-	int triNum, vertNum, attrDim;
+	
 	int *tri;      //array of int indices
 	dReal *vert;   //array of dReal vertices
-	dBodyID body;  //needs to be kinematic
 	dGeomID geom;
+	meshGL meshGL;
 };
 
-int meshGLODEInitialize(meshGLODE *meshGLODE,meshMesh *mesh, GLuint triNum, GLuint vertNum,
-		GLuint attrDim) {
-	meshGLODE->triNum = (int)mesh->triNum;
-	meshGLODE->vertNum = (int)mesh->vertNum;
-	meshGLODE->attrDim = (int)mesh->attrDim;
+int meshGLODEInitialize(meshGLODE *meshGLODE, meshMesh *mesh, int attrNum,
+		GLuint attrDims[], GLUint vaoNum) {
+	int i;
 	dReal *verts;
 	verts = (dReal *)malloc(3 * sizeof(dReal));
-	const int *index;
+	if (verts == NULL)
+		return 1;
+	int *index;
 	index = (int *)malloc(3 * sizeof(uint));
-	for (i = 0; i < vertNum; i++){
-		verts[i] = mesh>vert[i];
+	if (verts == NULL)
+		return 2;
+	for (i = 0; i < 3 * vertNum; i++){
+		verts[i] = mesh->vert[i];
 	}
-	for (i = 0; i < triNum; i++){
+	for (i = 0; i < 3 * triNum; i++){
 		index[i] = mesh->tri[i];
 	}
+	meshGLInitialize(meshGLODE->meshGL, mesh, attrNum, attrDims, vaoNum);
+	
+	/*
 	mesh->tri = (GLuint *)malloc(triNum * 3 * sizeof(GLuint) +
 		vertNum * attrDim * sizeof(GLdouble));
 	if (mesh->tri != NULL) {
@@ -40,9 +45,11 @@ int meshGLODEInitialize(meshGLODE *meshGLODE,meshMesh *mesh, GLuint triNum, GLui
 		mesh->triNum = triNum;
 		mesh->vertNum = vertNum;
 		mesh->attrDim = attrDim;
+		*/
 	}
 	free(verts);
 	free(index);
+	return 0;
 }
 
 /* Initializes a mesh with enough memory to hold its triangles and vertices.
