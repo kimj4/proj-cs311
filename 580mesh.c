@@ -14,7 +14,7 @@ struct meshGLODE {
 	int triNum, vertNum, attrDim;
 	int *tri;      //array of int indices
 	dReal *vert;   //array of dReal vertices
-	dBodyID body;
+	dBodyID body;  //needs to be kinematic
 	dGeomID geom;
 };
 
