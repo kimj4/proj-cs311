@@ -9,6 +9,42 @@ struct meshMesh {
 	GLdouble *vert;					/* vertNum * attrDim GLdoubles */
 };
 
+typedef struct meshGLODE meshGLODE;
+struct meshGLODE {
+	int triNum, vertNum, attrDim;
+	int *tri;      //array of int indices
+	dReal *vert;   //array of dReal vertices
+	dBodyID body;
+	dGeomID geom;
+};
+
+int meshGLODEInitialize(meshGLODE *meshGLODE,meshMesh *mesh, GLuint triNum, GLuint vertNum,
+		GLuint attrDim) {
+	meshGLODE->triNum = (int)mesh->triNum;
+	meshGLODE->vertNum = (int)mesh->vertNum;
+	meshGLODE->attrDim = (int)mesh->attrDim;
+	dReal *verts;
+	verts = (dReal *)malloc(3 * sizeof(dReal));
+	const int *index;
+	index = (int *)malloc(3 * sizeof(uint));
+	for (i = 0; i < vertNum; i++){
+		verts[i] = mesh>vert[i];
+	}
+	for (i = 0; i < triNum; i++){
+		index[i] = mesh->tri[i];
+	}
+	mesh->tri = (GLuint *)malloc(triNum * 3 * sizeof(GLuint) +
+		vertNum * attrDim * sizeof(GLdouble));
+	if (mesh->tri != NULL) {
+		mesh->vert = (GLdouble *)&(mesh->tri[triNum * 3]);
+		mesh->triNum = triNum;
+		mesh->vertNum = vertNum;
+		mesh->attrDim = attrDim;
+	}
+	free(verts);
+	free(index);
+}
+
 /* Initializes a mesh with enough memory to hold its triangles and vertices.
 Does not actually fill in those triangles or vertices with useful data. When
 you are finished with the mesh, you must call meshDestroy to deallocate its
