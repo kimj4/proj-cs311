@@ -349,10 +349,16 @@ void render(void) {
 	} else {
 		velocity = velocity - 9.8 / 60;
 	}
-	// ============ end physics demo ============
+	
 
 	nodeSphere.translation[2] += velocity;
-	nodeSphere.translation[0] += 1;
+	nodeSphere.translation[0] += 2;
+
+	if (nodeSphere.translation[0] > 150) {
+		nodeSphere.translation[0] = -100;
+		nodeSphere.translation[2] = 80;
+	} 
+	// ============ end physics demo ============
 
 	GLdouble identity[4][4];
 	mat44Identity(identity);
@@ -396,66 +402,75 @@ void render(void) {
 }
 
 int main(void) {
+	//ODE inits
+	dInitODE();
+	world = dWorldCreate();
+	space = dHashSpaceCreate(0);
+	contactgroup = dJointGroupCreate(0);
+	//Gravity
+	dWorldSetGravity(world, 0, 0, -9.8); // SI units
+	ground = dCreatePlane(space, 0, 0, 1, 0);
+
+
 	double oldTime;
 	double newTime = getTime();
-  glfwSetErrorCallback(handleError);
-  if (glfwInit() == 0) {
-  	fprintf(stderr, "main: glfwInit failed.\n");
-    return 1;
-  }
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+  	glfwSetErrorCallback(handleError);
+  	if (glfwInit() == 0) {
+  		fprintf(stderr, "main: glfwInit failed.\n");
+    	return 1;
+  	}
+  	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-  GLFWwindow *window;
-  window = glfwCreateWindow(768, 768, "Shadows", NULL, NULL);
-  if (window == NULL) {
-  	fprintf(stderr, "main: glfwCreateWindow failed.\n");
-    glfwTerminate();
+  	GLFWwindow *window;
+  	window = glfwCreateWindow(768, 768, "Shadows", NULL, NULL);
+  	if (window == NULL) {
+  		fprintf(stderr, "main: glfwCreateWindow failed.\n");
+    	glfwTerminate();
     return 2;
-  }
-  glfwSetWindowSizeCallback(window, handleResize);
-  glfwSetKeyCallback(window, handleKey);
-  glfwMakeContextCurrent(window);
-  if (gl3wInit() != 0) {
-  	fprintf(stderr, "main: gl3wInit failed.\n");
-  	glfwDestroyWindow(window);
-  	glfwTerminate();
-  	return 3;
-  }
+  	}
+  	glfwSetWindowSizeCallback(window, handleResize);
+  	glfwSetKeyCallback(window, handleKey);
+  	glfwMakeContextCurrent(window);
+  	if (gl3wInit() != 0) {
+  		fprintf(stderr, "main: gl3wInit failed.\n");
+  		glfwDestroyWindow(window);
+  		glfwTerminate();
+  		return 3;
+  	}
 
-  fprintf(stderr, "main: OpenGL %s, GLSL %s.\n",
-					glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
+  	fprintf(stderr, "main: OpenGL %s, GLSL %s.\n",
+	        glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
 	/* We no longer do glDepthRange(1.0, 0.0). Instead we have changed our
 	projection matrices. */
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
 
-  if (initializeShaderProgram() != 0)
-  	return 3;
-  /* Initialize the shadow mapping before the meshes. Why? */
+  	if (initializeShaderProgram() != 0)
+  		return 3;
+  	/* Initialize the shadow mapping before the meshes. Why? */
 	if (initializeCameraLight() != 0)
 		return 4;
-  if (initializeScene() != 0)
-  	return 5;
+  	if (initializeScene() != 0)
+  		return 5;
 
-  while (glfwWindowShouldClose(window) == 0) {
-  	oldTime = newTime;
-  	newTime = getTime();
-  	if (floor(newTime) - floor(oldTime) >= 1.0)
-		fprintf(stderr, "main: %f frames/sec\n", 1.0 / (newTime - oldTime));
+  	while (glfwWindowShouldClose(window) == 0) {
+  		oldTime = newTime;
+  		newTime = getTime();
+  		if (floor(newTime) - floor(oldTime) >= 1.0)
+			fprintf(stderr, "main: %f frames/sec\n", 1.0 / (newTime - oldTime));
 		render();
-    glfwSwapBuffers(window);
-    glfwPollEvents();
-  }
-  /* Deallocate more resources than ever. */
-  shadowProgramDestroy(&sdwProg);
-  shadowMapDestroy(&sdwMap);
-  glDeleteProgram(program);
-  destroyScene();
+    	glfwSwapBuffers(window);
+    	glfwPollEvents();
+  	}
+  	/* Deallocate more resources than ever. */
+  	shadowProgramDestroy(&sdwProg);
+  	shadowMapDestroy(&sdwMap);
+  	glDeleteProgram(program);
+  	destroyScene();
 	glfwDestroyWindow(window);
-  glfwTerminate();
-
-  return 0;
+  	glfwTerminate();
+  	return 0;
 }

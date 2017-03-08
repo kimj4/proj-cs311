@@ -1,1 +1,1 @@
-clang mainshadowingsave.c /usr/local/gl3w/src/gl3w.o -lglfw -framework OpenGL -framework CoreFoundation
+clang++ mainshadowingsave.c /usr/local/gl3w/src/gl3w.o -lglfw -lode -framework OpenGL -framework CoreFoundation

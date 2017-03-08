@@ -159,11 +159,11 @@ int main(int argc, char *argv[]) {
 	ground = dCreatePlane(space, 0, 0, 1, 0);
 
     //Make a sphere
-	dMass m;
+	d
+	dMassSetZero (&m);Mass m;
 	dReal radius = 0.5;
 	sphere.body = dBodyCreate (world);
 
-	dMassSetZero (&m);
 	dMassSetSphere (&m, DENSITY, radius);
 	dBodySetMass (sphere.body, &m);
 	dBodySetPosition(sphere.body, 0, 1, 1);
