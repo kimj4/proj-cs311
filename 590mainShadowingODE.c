@@ -9,6 +9,7 @@
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <sys/time.h>
+#include <ode/ode.h>
 
 double getTime(void) {
 	struct timeval tv;
@@ -25,6 +26,24 @@ double getTime(void) {
 #include "580scene.c"
 #include "560light.c"
 #include "590shadow.c"
+
+typedef struct MyObject MyObject;
+	struct MyObject {
+    	dBodyID body;
+		dGeomID geom;
+	};
+static dWorldID world;
+static dSpaceID space;
+static dGeomID ground;
+static dJointGroupID contactgroup;
+static int flag = 0;
+
+static MyObject sphere; //box, capsule, cylinder;
+static MyObject ground;
+
+const dReal radius = 0.3;
+const dReal mass = 1.0;
+const int max_Contact = 10;
 
 camCamera cam;
 texTexture texH, texV, texW, texT, texL;
@@ -377,6 +396,52 @@ int initializeShaderProgram(void) {
 
 	return (program == 0);
 }
+//Collision detection 
+static void nearCallback(void *data, dGeomID o1, dGeomID o2)ß{
+  
+  dContact contact[max_Contact];
+
+  if (dGeomIsSpace(o1) || dGeomIsSpace(o2)) {
+	dSpaceCollide2(o1, o2, data, &nearCallback);
+	if (dGeomIsSpace(o1))
+		dSpaceCollide((dSpaceID)o1, data, &nearCallback);
+	if (dGeomIsSpace(o2))
+		dSpaceCollide((dSpaceID)o2, data, &nearCallback);
+  }
+  else{
+	  //number of contacts
+	  int n = dCollide(o1, o2, max_Contact, &contact[0].geom, sizeof(dContact));
+	  for (int i = 0; i < n; i++) {
+      	contact[i].surface.mode = dContactBounce;
+      	contact[i].surface.mu   = dInfinity;
+      	contact[i].surface.bounce     = 0.0; // (0.0~1.0) restitution parameter
+      	contact[i].surface.bounce_vel = 0.0; // minimum incoming velocity for bounce
+      	dJointID c = dJointCreateContact(world,contactgroup,&contact[i]);
+      	dJointAttach (c,dGeomGetBody(contact[i].geom.g1),dGeomGetBody(contact[i].geom.g2));
+    
+  	  }
+  }
+  dSpaceCollide(space, 0, &nearCallback);
+}
+
+
+
+
+  //if (isGround)  {
+	if (n >= 1) 
+		flag = 1;
+    else        
+		flag = 0;
+    for (int i = 0; i < n; i++) {
+      contact[i].surface.mode = dContactBounce;
+      contact[i].surface.mu   = dInfinity;
+      contact[i].surface.bounce     = 0.0; // (0.0~1.0) restitution parameter
+      contact[i].surface.bounce_vel = 0.0; // minimum incoming velocity for bounce
+      dJointID c = dJointCreateContact(world,contactgroup,&contact[i]);
+      dJointAttach (c,dGeomGetBody(contact[i].geom.g1),dGeomGetBody(contact[i].geom.g2));
+    
+  }
+}
 
 void render(void) {
 	GLdouble identity[4][4];
@@ -422,6 +487,16 @@ void render(void) {
 	/* For each shadow-casting light, turn it off when finished rendering. */
 	shadowUnrender(GL_TEXTURE7);
 	shadowUnrender(GL_TEXTURE6);
+
+	//ODE functions
+	const dReal *pos, *R;
+	flag = 0;
+	dSpaceCollide(space, 0, &nearCallback);
+	dWorldStep(world, 0.005);
+	dJointGroupEmpty(contactgroup);
+	pos = dBodyGetPosition(sphere.body);
+	R = dBodyGetRotation(sphere.body);
+
 }
 
 int main(void) {
@@ -435,7 +510,7 @@ int main(void) {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   GLFWwindow *window;
   window = glfwCreateWindow(768, 768, "Shadows", NULL, NULL);
   if (window == NULL) {
@@ -469,6 +544,24 @@ int main(void) {
   if (initializeScene() != 0)
   	return 5;
 
+//ODE inits
+	dInitODE();
+	world = dWorldCreate();
+	space = dHashSpaceCreate(0);
+	contactgroup = dJointGroupCreate(0);
+	dWorldSetGravity(world, 0, 0, -0.5);
+	ground = dCreatePlane(space, 0, 0, 1, 0);
+
+	dMass m1;
+	dReal x0 = 0.0, y0 = 0.0, z0 = 2.0;
+
+	sphere.body = dBodyCreate(world);
+	dMassSetZero(&m1);
+	dMassSetTotal(&m1, mass, radius);
+	sphere.geom = dCreateSphere(space, radius);
+	dGeomSetBody(sphere.geom, sphere.body);
+	//dBodySetPosition(sphere.body, x0, y0, z0);
+
   while (glfwWindowShouldClose(window) == 0) {
   	oldTime = newTime;
   	newTime = getTime();
@@ -483,7 +576,9 @@ int main(void) {
   shadowMapDestroy(&sdwMap);
   glDeleteProgram(program);
   destroyScene();
-	glfwDestroyWindow(window);
+  dWorldDestroy(world);
+  dCloseODE();
+  glfwDestroyWindow(window);
   glfwTerminate();
 
   return 0;
