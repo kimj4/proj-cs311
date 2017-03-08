@@ -48,9 +48,9 @@ static int flag = 0;
 MyObject sphere;
 
 camCamera cam;
-texTexture texH, texBall;
-meshGLMesh floorGL, sphereGL;
-sceneNode nodeFloor, nodeSphere;
+texTexture texH, texBall, texPipe;
+meshGLMesh floorGL, sphereGL, pipeGL;
+sceneNode nodeFloor, nodeSphere, nodePipe;
 /* We need just one shadow program, because all of our meshes have the same
 attribute structure. */
 shadowProgram sdwProg;
@@ -346,17 +346,26 @@ void render(void) {
 			velocity = friction * velocity * -1;
 			printf("vel after %f\n", velocity);
 		}
+		nodeSphere.translation[2] += velocity;
+		if (nodeSphere.translation[2] < 0) {
+			printf("aaaa\n");
+			nodeSphere.translation[2] = 0.0;
+		}
 	} else {
 		velocity = velocity - 9.8 / 60;
+		nodeSphere.translation[2] += velocity;	
 	}
 	
 
-	nodeSphere.translation[2] += velocity;
-	nodeSphere.translation[0] += 2;
+	
+	 
+	nodeSphere.translation[0] += 1.5;
 
-	if (nodeSphere.translation[0] > 150) {
-		nodeSphere.translation[0] = -100;
-		nodeSphere.translation[2] = 80;
+	if (nodeSphere.translation[0] > 180) {
+		nodeSphere.translation[0] = -90;
+		nodeSphere.translation[2] = 110;
+		velocity = 0;
+
 	} 
 	// ============ end physics demo ============
 
