@@ -14,6 +14,7 @@
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <sys/time.h>
+#include <ode/ode.h>
 
 double getTime(void) {
 	struct timeval tv;
@@ -95,12 +96,14 @@ void handleKey(GLFWwindow *window, int key, int scancode, int action, int mods) 
 			camAddTheta(&cam, 0.1);
 		else if (key == GLFW_KEY_I)
 			camAddPhi(&cam, -0.1);
-		else if (key == GLFW_KEY_K)
+		else if (key == GLFW_KEY_K) {
 			camAddPhi(&cam, 0.1);
+			// printf("%f\n", cam.phi);
+		}
 		else if (key == GLFW_KEY_U)
 			camAddDistance(&cam, -0.5);
 		else if (key == GLFW_KEY_J)
-			camAddDistance(&cam, 0.5);
+			camAddDistance(&cam, 3.0);
 		else if (key == GLFW_KEY_Y) {
 			GLdouble vec[3];
 			vecCopy(3, light.translation, vec);
@@ -131,7 +134,7 @@ midway through, then does not properly deallocate all resources. But that's
 okay, because the program terminates almost immediately after this function
 returns. */
 int initializeScene(void) {
-	if (texInitializeFile(&texH, "grass.jpg", GL_LINEAR, GL_LINEAR,
+	if (texInitializeFile(&texH, "gray.jpeg", GL_LINEAR, GL_LINEAR,
     		GL_REPEAT, GL_REPEAT) != 0)
 		return 1;
 	if (texInitializeFile(&texBall, "granite.jpg", GL_LINEAR, GL_LINEAR,
@@ -188,7 +191,7 @@ int initializeScene(void) {
 	GLdouble unif[3] = {1.0, 1.0, 1.0};
 	sceneSetUniform(&nodeFloor, unif);
 
-	vecSet(3, trans, 0.0, 0.0, 10.0);
+	vecSet(3, trans, -90.0, 0.0, 70.0);
 	sceneSetTranslation(&nodeSphere, trans);
 	sceneSetUniform(&nodeSphere, unif);
 	tex = &texH;
@@ -210,25 +213,25 @@ okay, because the program terminates almost immediately after this function
 returns. */
 int initializeCameraLight(void) {
   	GLdouble vec[3] = {30.0, 30.0, 5.0};
-	camSetControls(&cam, camPERSPECTIVE, M_PI / 6.0, 10.0, 768.0, 768.0, 100.0,
-								 M_PI / 4.0, M_PI / 4.0, vec);
+	camSetControls(&cam, camPERSPECTIVE, M_PI / 6.0, 10.0, 768.0, 768.0, 500.0,
+								 M_PI / 3.0, M_PI / 4.0, vec);
 	lightSetType(&light, lightSPOT);
-	vecSet(3, vec, 0.0, 0.0, 50.0);
-	lightShineFrom(&light, vec, 0.0, M_PI * 3.0 / 4.0);
+	vecSet(3, vec, 0.0, 0.0, 100.0);
+	lightShineFrom(&light, vec, M_PI, M_PI / 2);
 	vecSet(3, vec, 1.0, 1.0, 1.0);
 	lightSetColor(&light, vec);
 	vecSet(3, vec, 1.0, 0.0, 0.0);
 	lightSetAttenuation(&light, vec);
-	lightSetSpotAngle(&light, M_PI);
+	lightSetSpotAngle(&light, M_PI / 4.0);
 	/* Configure shadow mapping. */
 	if (shadowProgramInitialize(&sdwProg, 3) != 0)
 		return 1;
 	if (shadowMapInitialize(&sdwMap, 1024, 1024) != 0)
 		return 2;
 
-	vecSet(3, vec, 40.0, 40.0, 5.0);
-	camSetControls(&cam, camPERSPECTIVE, M_PI / 6.0, 10.0, 768.0, 768.0, 100.0,
-								 M_PI / 4.0, M_PI / 4.0, vec);
+	// vecSet(3, vec, 40.0, 40.0, 5.0);
+	// camSetControls(&cam, camPERSPECTIVE, M_PI / 6.0, 10.0, 768.0, 768.0, 100.0,
+	// 							 M_PI / 4.0, M_PI / 4.0, vec);
 	lightSetType(&light2, lightSPOT);
 	vecSet(3, vec, 50.0, 40.0, 25.0);
 	lightShineFrom(&light2, vec, M_PI * 3.0 / 4.0, M_PI * 3.0 / 4.0);
@@ -299,7 +302,7 @@ int initializeShaderProgram(void) {
 			float sdw = textureProj(textureSdw, fragSdw);\
 			diffInt *= sdw;\
 			specInt *= sdw;\
-			vec3 diffRefl = max(0.2, diffInt) * lightCol * diffuse;\
+			vec3 diffRefl = max(0.4, diffInt) * lightCol * diffuse;\
 			vec3 specRefl = specInt * lightCol * specular;\
 			fragColor = vec4(diffRefl + specRefl, 1.0);\
 		}";
@@ -326,7 +329,31 @@ int initializeShaderProgram(void) {
 	return (program == 0);
 }
 
+double velocity = 0;
+int direction = -1;
+
+
+
 void render(void) {
+	// ============ for physics demo ============
+	double friction = .86;
+	if (nodeSphere.translation[0] < 100) {
+		if (nodeSphere.translation[2] > 6) {
+			velocity = velocity - 9.8 / 60;
+		} else {
+			// reduce energy every time ball hits the ground
+			printf("vel before %f\n", velocity);
+			velocity = friction * velocity * -1;
+			printf("vel after %f\n", velocity);
+		}
+	} else {
+		velocity = velocity - 9.8 / 60;
+	}
+	// ============ end physics demo ============
+
+	nodeSphere.translation[2] += velocity;
+	nodeSphere.translation[0] += 1;
+
 	GLdouble identity[4][4];
 	mat44Identity(identity);
 
