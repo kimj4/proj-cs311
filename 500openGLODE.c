@@ -84,9 +84,9 @@ static void nearCallback(void *data, dGeomID o1, dGeomID o2)
   int n =  dCollide(o1,o2,N,&contact[0].geom,sizeof(dContact));
 
   //if (isGround)  {
-	if (n >= 1) 
+	if (n >= 1)
 		flag = 1;
-    else        
+    else
 		flag = 0;
     for (int i = 0; i < n; i++) {
       contact[i].surface.mode = dContactBounce;
@@ -95,7 +95,7 @@ static void nearCallback(void *data, dGeomID o1, dGeomID o2)
       contact[i].surface.bounce_vel = 0.0; // minimum incoming velocity for bounce
       dJointID c = dJointCreateContact(world,contactgroup,&contact[i]);
       dJointAttach (c,dGeomGetBody(contact[i].geom.g1),dGeomGetBody(contact[i].geom.g2));
-    
+
   }
 }
 
@@ -130,7 +130,7 @@ void render(void) {
 	glColorPointer(3, GL_DOUBLE, 0, colors);
 	/* Draw the triangles, each one a triple of attribute array indices. */
     glDrawElements(GL_TRIANGLES, triNum * 3, GL_UNSIGNED_INT, triangles);
-   
+
    //simulate collisions
     const dReal *pos1,*R1;//,*pos2,*R2,*pos3,*R3;
    	flag = 0;
@@ -139,13 +139,13 @@ void render(void) {
 	dJointGroupEmpty(contactgroup);
 
 	//draw sphere
-	
+
 	pos1 = dBodyGetPosition(sphere.body); // get a body position
     R1   = dBodyGetRotation(sphere.body); // get a body rotation matrix
 	printf("pos = %f /n", pos1[2] );
 	//Draw sphere (pos1, R1)
 
-	
+
 }
 
 int main(int argc, char *argv[]) {
@@ -159,15 +159,16 @@ int main(int argc, char *argv[]) {
 	ground = dCreatePlane(space, 0, 0, 1, 0);
 
     //Make a sphere
-	d
-	dMassSetZero (&m);Mass m;
+	dMass m;
+	dMassSetZero (&m);
 	dReal radius = 0.5;
+	dMassSetSphere(m, DENSITY, radius);
 	sphere.body = dBodyCreate (world);
 
 	dMassSetSphere (&m, DENSITY, radius);
 	dBodySetMass (sphere.body, &m);
 	dBodySetPosition(sphere.body, 0, 1, 1);
-	
+
 	sphere.geom = dCreateSphere(space, radius);
 	dGeomSetBody(sphere.geom, sphere.body);
 
