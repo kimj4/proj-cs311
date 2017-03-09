@@ -9,6 +9,7 @@
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <sys/time.h>
+#include <ode/ode.h>
 
 double getTime(void) {
 	struct timeval tv;
@@ -28,7 +29,7 @@ double getTime(void) {
 
 camCamera cam;
 texTexture texH, texV, texW, texT, texL;
-meshGLMesh meshH, meshV, meshW, meshT, meshL;
+meshGLODE meshGLODEH, meshGLODEV, meshGLODEW, meshGLODET, meshGLODEL;
 sceneNode nodeH, nodeV, nodeW, nodeT, nodeL;
 /* We need just one shadow program, because all of our meshes have the same
 attribute structure. */
@@ -164,18 +165,13 @@ int initializeScene(void) {
 		return 7;
 	/* There are now two VAOs per mesh. */
 	// changes: there are 3 to accomodate 2 light sources
-//meshGLODE usage here
-	dTriMeshDataID meshData = dGeomTriMeshDataCreate(); //put into initializer
-	meshGLODEInitialize(&meshGLODE, &mesh, 3, attrDims, 3);
-	dGeomTriMeshDataBuildSingle(meshData, meshGLODE->vert, 3 * sizeof(dReal), meshGLODE.meshGL->vertNum, meshGLODE->tri,
-		 3 * meshGLODE.meshGL->triNum, 3 * sizeof(unsigned int));
-	meshLGODE->geom = dCreateTriMesh(space, Data, 0, 0, 0); //put into initializer
-	//pass meshGLODE to a sceneNode
-//meshGLODE end usage
-	meshGLVAOInitialize(&meshH, 0, attrLocs);
-	meshGLVAOInitialize(&meshH, 1, sdwProg.attrLocs);
-	meshGLVAOInitialize(&meshH, 2, sdwProg2.attrLocs);
+//meshGLODE usage here===============================	
+	meshGLODEInitialize(&meshGLODEH, &mesh, 3, attrDims, 3);
+	meshGLVAOInitialize(&meshGLODEH->meshGL, 0, attrLocs);
+	meshGLVAOInitialize(&meshGLODEH->meshGL, 1, sdwProg.attrLocs);
+	meshGLVAOInitialize(&meshGLODEH->meshGL, 2, sdwProg2.attrLocs);
 	meshDestroy(&mesh);
+
 	if (meshInitializeDissectedLandscape(&mesh, &meshLand, M_PI / 3.0, 0) != 0)
 		return 8;
 	meshDestroy(&meshLand);
@@ -187,25 +183,28 @@ int initializeScene(void) {
 		vert[3] = (vert[0] * normal[0] + vert[1] * normal[1]) / 20.0;
 		vert[4] = vert[2] / 20.0;
 	}
-	meshGLInitialize(&meshV, &mesh, 3, attrDims, 3);
-	meshGLVAOInitialize(&meshV, 0, attrLocs);
-	meshGLVAOInitialize(&meshV, 1, sdwProg.attrLocs);
-	meshGLVAOInitialize(&meshV, 2, sdwProg2.attrLocs);
+	meshGLODEInitialize(&meshGLODEV, &mesh, 3, attrDims, 3);
+	meshGLVAOInitialize(&meshGLODEV->meshGL, 0, attrLocs);
+	meshGLVAOInitialize(&meshGLODEV->meshGL, 1, sdwProg.attrLocs);
+	meshGLVAOInitialize(&meshGLODEV->meshGL, 2, sdwProg2.attrLocs);
 	meshDestroy(&mesh);
+
 	if (meshInitializeLandscape(&mesh, 12, 12, 5.0, (double *)ws) != 0)
 		return 9;
-	meshGLInitialize(&meshW, &mesh, 3, attrDims, 3);
-	meshGLVAOInitialize(&meshW, 0, attrLocs);
-	meshGLVAOInitialize(&meshW, 1, sdwProg.attrLocs);
-	meshGLVAOInitialize(&meshW, 2, sdwProg2.attrLocs);
+	meshGLODEInitialize(&meshGLODEW, &mesh, 3, attrDims, 3);
+	meshGLVAOInitialize(&meshGLODEW->meshGL, 0, attrLocs);
+	meshGLVAOInitialize(&meshGLODEW->meshGL, 1, sdwProg.attrLocs);
+	meshGLVAOInitialize(&meshGLODEW->meshGL, 2, sdwProg2.attrLocs);
 	meshDestroy(&mesh);
+
 	if (meshInitializeCapsule(&mesh, 1.0, 10.0, 1, 8) != 0)
 		return 10;
-	meshGLInitialize(&meshT, &mesh, 3, attrDims, 3);
-	meshGLVAOInitialize(&meshT, 0, attrLocs);
-	meshGLVAOInitialize(&meshT, 1, sdwProg.attrLocs);
-	meshGLVAOInitialize(&meshT, 2, sdwProg2.attrLocs);
+	meshGLODEInitialize(&meshGLODET, &mesh, 3, attrDims, 3);
+	meshGLVAOInitialize(&meshGLODET->meshGL, 0, attrLocs);
+	meshGLVAOInitialize(&meshGLODET->meshGL, 1, sdwProg.attrLocs);
+	meshGLVAOInitialize(&meshGLODET->meshGL, 2, sdwProg2.attrLocs);
 	meshDestroy(&mesh);
+
 	if (meshInitializeBox(&mesh, -5, 5, -5, 5, -5, 5) != 0)
 		return 11;
 	meshGLInitialize(&meshL, &mesh, 3, attrDims, 3);
@@ -213,16 +212,19 @@ int initializeScene(void) {
 	meshGLVAOInitialize(&meshL, 1, sdwProg.attrLocs);
 	meshGLVAOInitialize(&meshL, 2, sdwProg2.attrLocs);
 	meshDestroy(&mesh);
-	if (sceneInitialize(&nodeW, 3, 1, &meshW, NULL, NULL) != 0)
+//pass meshGLODE to a sceneNode
+	if (sceneInitialize(&nodeW, 3, 1, &meshGLODEW->meshGL, NULL, NULL) != 0)
 		return 14;
-	if (sceneInitialize(&nodeL, 3, 1, &meshL, NULL, NULL) != 0)
+	if (sceneInitialize(&nodeL, 3, 1, &meshGLODEL->meshGL, NULL, NULL) != 0)
 		return 16;
-	if (sceneInitialize(&nodeT, 3, 1, &meshT, &nodeL, &nodeW) != 0)
+	if (sceneInitialize(&nodeT, 3, 1, &meshGLODET->meshGL, &nodeL, &nodeW) != 0)
 		return 15;
-	if (sceneInitialize(&nodeV, 3, 1, &meshV, NULL, &nodeT) != 0)
+	if (sceneInitialize(&nodeV, 3, 1, &meshGLODEV->meshGL, NULL, &nodeT) != 0)
 		return 13;
-	if (sceneInitialize(&nodeH, 3, 1, &meshH, &nodeV, NULL) != 0)
+	if (sceneInitialize(&nodeH, 3, 1, &meshH, &nodeGLODEV->meshGL, NULL) != 0)
 		return 12;
+//meshGLODE end usage=============
+
 	GLdouble trans[3] = {40.0, 28.0, 5.0};
 	sceneSetTranslation(&nodeT, trans);
 	vecSet(3, trans, 0.0, 0.0, 7.0);
@@ -254,6 +256,7 @@ void destroyScene(void) {
 	texDestroy(&texW);
 	texDestroy(&texT);
 	texDestroy(&texL);
+//implement meshGLODE destruction
 	meshGLDestroy(&meshH);
 	meshGLDestroy(&meshV);
 	meshGLDestroy(&meshW);
@@ -428,6 +431,7 @@ void render(void) {
 }
 
 int main(void) {
+	intiODE();
 	double oldTime;
 	double newTime = getTime();
   glfwSetErrorCallback(handleError);

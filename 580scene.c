@@ -1,22 +1,24 @@
 /*** Creation and destruction ***/
 /* Feel free to read from this struct's members, but don't write to them except
 through the accessor functions. */
-typedef struct sceneNode sceneNode;
+typedef struct sceneNode sceneNode; //supports ode and has ode mesh
 struct sceneNode {
 	GLdouble rotation[3][3];
 	GLdouble translation[3];
 	GLuint unifDim;
 	GLdouble *unif;
-	meshGLMesh *meshGL;
+	meshGLODE *meshGLODE;
 	sceneNode *firstChild, *nextSibling;
-  GLint texNum;
-  texTexture **tex;
+  	GLint texNum;
+  	texTexture **tex;
+	dBody body;
+	int kinematic;
 };
 
 /* Initializes a sceneNode struct. The translation and rotation are initialized to trivial values. The user must remember to call sceneDestroy or
 sceneDestroyRecursively when finished. Returns 0 if no error occurred. */
 int sceneInitialize(sceneNode *node, GLuint unifDim, GLuint texNum,
-      meshGLMesh *mesh, sceneNode *firstChild, sceneNode *nextSibling) {
+      meshGLODE *mesh, sceneNode *firstChild, sceneNode *nextSibling) {
   node->unif = (GLdouble *)malloc(unifDim * sizeof(GLdouble) +
       texNum * sizeof(texTexture *));
   if (node->unif == NULL)
@@ -26,7 +28,7 @@ int sceneInitialize(sceneNode *node, GLuint unifDim, GLuint texNum,
   mat33Identity(node->rotation);
 	vecSet(3, node->translation, 0.0, 0.0, 0.0);
 	node->unifDim = unifDim;
-	node->meshGL = mesh;
+	node->meshGLODE = mesh;
 	node->firstChild = firstChild;
 	node->nextSibling = nextSibling;
 	return 0;

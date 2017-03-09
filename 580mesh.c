@@ -20,6 +20,7 @@ struct meshGLODE {
 
 int meshGLODEInitialize(meshGLODE *meshGLODE, meshMesh *mesh, int attrNum,
 		GLuint attrDims[], GLUint vaoNum) {
+	dTriMeshDataID meshData = dGeomTriMeshDataCreate();
 	int i;
 	dReal *verts;
 	verts = (dReal *)malloc(3 * sizeof(dReal));
@@ -36,7 +37,9 @@ int meshGLODEInitialize(meshGLODE *meshGLODE, meshMesh *mesh, int attrNum,
 		index[i] = mesh->tri[i];
 	}
 	meshGLInitialize(meshGLODE->meshGL, mesh, attrNum, attrDims, vaoNum);
-	
+	dGeomTriMeshDataBuildSingle(meshData, meshGLODE->vert, 3 * sizeof(dReal), meshGLODE.meshGL->vertNum, meshGLODE->tri,
+		 3 * meshGLODE.meshGL->triNum, 3 * sizeof(unsigned int));
+	meshLGODE->geom = dCreateTriMesh(space, Data, 0, 0, 0); 
 	/*
 	mesh->tri = (GLuint *)malloc(triNum * 3 * sizeof(GLuint) +
 		vertNum * attrDim * sizeof(GLdouble));
