@@ -11,16 +11,18 @@ struct sceneNode {
 	sceneNode *firstChild, *nextSibling;
   	GLint texNum;
   	texTexture **tex;
-	dBody body;
+	dBodyID body;
 	int kinematic;
 };
 
 /* Initializes a sceneNode struct. The translation and rotation are initialized to trivial values. The user must remember to call sceneDestroy or
 sceneDestroyRecursively when finished. Returns 0 if no error occurred. */
 int sceneInitialize(sceneNode *node, GLuint unifDim, GLuint texNum,
-      meshGLODE *meshGLO, sceneNode *firstChild, sceneNode *nextSibling) {
+      meshGLODE *meshGLO, sceneNode *firstChild, sceneNode *nextSibling, dWorldID world) {
+  
   node->unif = (GLdouble *)malloc(unifDim * sizeof(GLdouble) +
       texNum * sizeof(texTexture *));
+
   if (node->unif == NULL)
       return 1;
   node->tex = (texTexture **)&(node->unif[unifDim]);
@@ -31,6 +33,9 @@ int sceneInitialize(sceneNode *node, GLuint unifDim, GLuint texNum,
 	node->meshGLODE = meshGLO;
 	node->firstChild = firstChild;
 	node->nextSibling = nextSibling;
+
+	node->body = dBodyCreate(world);
+	dGeomSetBody(node->meshGLODE->geom, node->body);
 	return 0;
 }
 

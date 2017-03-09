@@ -30,6 +30,7 @@ double getTime(void) {
 static dWorldID world;
 static dSpaceID space;
 static dJointGroupID contactgroup;
+static dGeomID ground;
 
 camCamera cam;
 texTexture texH, texV, texW, texT, texL;
@@ -255,22 +256,40 @@ int initializeScene(void) {
 	meshGLODEInitialize(&meshGLODEL, &meshGLL, &mesh, 3, attrDims, 3, space);
 	meshDestroy(&mesh);
 //pass meshGLODE to a sceneNode
-	if (sceneInitialize(&nodeW, 3, 1, &meshGLODEW, NULL, NULL) != 0)
+	if (sceneInitialize(&nodeW, 3, 1, &meshGLODEW, NULL, NULL, world) != 0)
 		return 14;
-	if (sceneInitialize(&nodeL, 3, 1, &meshGLODEL, NULL, NULL) != 0)
+	if (sceneInitialize(&nodeL, 3, 1, &meshGLODEL, NULL, NULL, world) != 0)
 		return 16;
-	if (sceneInitialize(&nodeT, 3, 1, &meshGLODET, &nodeL, &nodeW) != 0)
+	if (sceneInitialize(&nodeT, 3, 1, &meshGLODET, &nodeL, &nodeW, world) != 0)
 		return 15;
-	if (sceneInitialize(&nodeV, 3, 1, &meshGLODEV, NULL, &nodeT) != 0)
+	if (sceneInitialize(&nodeV, 3, 1, &meshGLODEV, NULL, &nodeT, world) != 0)
 		return 13;
-	if (sceneInitialize(&nodeH, 3, 1, &meshGLODEH, &nodeV, NULL) != 0)
+	if (sceneInitialize(&nodeH, 3, 1, &meshGLODEH, &nodeV, NULL, world) != 0)
 		return 12;
 //meshGLODE end usage=============
 
+	// tree leaves position ODE
 	GLdouble trans[3] = {40.0, 28.0, 5.0};
 	sceneSetTranslation(&nodeT, trans);
-	vecSet(3, trans, 0.0, 0.0, 7.0);
+	
+
+
+	vecSet(3, trans, 25.0, 0.0, 20.0);
 	sceneSetTranslation(&nodeL, trans);
+	dReal x = trans[0];
+	dReal y = trans[1];
+	dReal z = trans[2];
+	printf("%f\n", z);
+	dBodySetPosition (nodeL.body, x, y, z);
+	const dReal *pos1 = dBodyGetPosition(nodeL.body);
+	printf("++ Leaves be here %f\n",pos1[0]);
+	printf("++ Leaves be here %f\n",pos1[1]);
+	printf("++ Leaves be here %f\n\n",pos1[2]);
+
+
+	
+
+
 	GLdouble unif[3] = {0.0, 0.0, 0.0};
 	sceneSetUniform(&nodeH, unif);
 	sceneSetUniform(&nodeV, unif);
@@ -430,6 +449,28 @@ int initializeShaderProgram(void) {
 	return (program == 0);
 }
 
+static void nearCallback(void *data, dGeomID o1, dGeomID o2)
+{
+  const int N = 10;
+  dContact contact[N];
+
+  //int isGround = ((ground == o1) || (ground == o2));
+
+  int n =  dCollide(o1,o2,N,&contact[0].geom,sizeof(dContact));
+
+  //if (isGround)  {
+	if (n >= 1) {
+    	for (int i = 0; i < n; i++) {
+      	contact[i].surface.mode = dContactBounce;
+      	contact[i].surface.mu   = dInfinity;
+      	contact[i].surface.bounce     = 0.0; // (0.0~1.0) restitution parameter
+      	contact[i].surface.bounce_vel = 0.0; // minimum incoming velocity for bounce
+      	dJointID c = dJointCreateContact(world, contactgroup, &contact[i]);
+      	dJointAttach (c, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
+    }
+  }
+}
+
 void render(void) {
 
 	GLdouble identity[4][4];
@@ -472,6 +513,17 @@ void render(void) {
 	/* For each shadow-casting light, turn it off when finished rendering. */
 	shadowUnrender(GL_TEXTURE7);
 	shadowUnrender(GL_TEXTURE6);
+
+	dSpaceCollide(space, 0, &nearCallback);
+	dWorldStep(world, 0.01);
+	dJointGroupEmpty(contactgroup);
+
+	const dReal *pos1 = dBodyGetPosition(nodeL.body);
+	nodeL.translation[2] = pos1[2];
+	printf("++ Leaves be here %f\n",pos1[0]);
+	printf("++ Leaves be here %f\n",pos1[1]);
+	printf("++ Leaves be here %f\n\n",pos1[2]);
+
 }
 
 int main(void) {
@@ -480,6 +532,8 @@ int main(void) {
 	world = dWorldCreate();
 	space = dHashSpaceCreate(0);
 	contactgroup = dJointGroupCreate(0);
+	dWorldSetGravity(world, 0, 0, -.1);
+	ground = dCreatePlane(space, 0, 0, 1, 0);
 
 	double oldTime;
 	double newTime = getTime();
