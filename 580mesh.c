@@ -9,37 +9,63 @@ struct meshMesh {
 	GLdouble *vert;					/* vertNum * attrDim GLdoubles */
 };
 
+typedef struct meshGLMesh meshGLMesh;
+struct meshGLMesh {
+	GLuint triNum, vertNum, vaoNum, attrNum, attrDim;
+  	GLuint *attrDims;
+  	GLuint *vaos;
+	GLuint buffers[2];
+};
+
 typedef struct meshGLODE meshGLODE;
 struct meshGLODE {
-	
 	int *tri;      //array of int indices
 	dReal *vert;   //array of dReal vertices
 	dGeomID geom;
-	meshGL meshGL;
+	meshGLMesh *meshGL;
 };
 
-int meshGLODEInitialize(meshGLODE *meshGLODE, meshMesh *mesh, int attrNum,
-		GLuint attrDims[], GLUint vaoNum) {
+
+// forward declarations
+int meshGLInitialize(meshGLMesh *meshGL, meshMesh *mesh, GLuint attrNum, GLuint attrDims[], GLuint vaoNum);
+
+
+
+
+
+int meshGLODEInitialize(meshGLODE *meshGLODE, meshGLMesh *meshGL, meshMesh *mesh, int attrNum,
+						GLuint attrDims[], GLuint vaoNum, dSpaceID space) {
+
+
+	meshGLODE->meshGL = meshGL;
+
 	dTriMeshDataID meshData = dGeomTriMeshDataCreate();
 	int i;
 	dReal *verts;
-	verts = (dReal *)malloc(3 * sizeof(dReal));
+	verts = (dReal *)malloc(mesh->vertNum * sizeof(dReal));
 	if (verts == NULL)
 		return 1;
+
 	int *index;
-	index = (int *)malloc(3 * sizeof(uint));
+	index = (int *)malloc(mesh->triNum * attrNum * sizeof(unsigned int));
 	if (verts == NULL)
 		return 2;
-	for (i = 0; i < 3 * vertNum; i++){
+	for (i = 0; i < mesh->vertNum; i++){
 		verts[i] = mesh->vert[i];
 	}
-	for (i = 0; i < 3 * triNum; i++){
+
+	meshGLODE->vert = verts;
+	
+	for (i = 0; i < 3 * mesh->triNum; i++){
 		index[i] = mesh->tri[i];
 	}
-	meshGLInitialize(meshGLODE->meshGL, mesh, attrNum, attrDims, vaoNum);
-	dGeomTriMeshDataBuildSingle(meshData, meshGLODE->vert, 3 * sizeof(dReal), meshGLODE.meshGL->vertNum, meshGLODE->tri,
-		 3 * meshGLODE.meshGL->triNum, 3 * sizeof(unsigned int));
-	meshLGODE->geom = dCreateTriMesh(space, Data, 0, 0, 0); 
+	meshGLODE->tri = index;
+
+	// meshGLInitialize(&meshGLODE->meshGL, mesh, attrNum, attrDims, vaoNum);
+	
+	dGeomTriMeshDataBuildSingle(meshData, meshGLODE->vert, 3 * sizeof(dReal), meshGLODE->meshGL->vertNum, meshGLODE->tri,
+		 3 * meshGLODE->meshGL->triNum, 3 * sizeof(unsigned int));
+	meshGLODE->geom = dCreateTriMesh(space, meshData, 0, 0, 0); 
 	/*
 	mesh->tri = (GLuint *)malloc(triNum * 3 * sizeof(GLuint) +
 		vertNum * attrDim * sizeof(GLdouble));
@@ -49,9 +75,7 @@ int meshGLODEInitialize(meshGLODE *meshGLODE, meshMesh *mesh, int attrNum,
 		mesh->vertNum = vertNum;
 		mesh->attrDim = attrDim;
 		*/
-	}
-	free(verts);
-	free(index);
+
 	return 0;
 }
 
@@ -121,13 +145,13 @@ void meshDestroy(meshMesh *mesh) {
 
 /* Feel free to read from this struct's members, but don't write to them,
 except through accessor functions. */
-typedef struct meshGLMesh meshGLMesh;
-struct meshGLMesh {
-	GLuint triNum, vertNum, vaoNum, attrNum, attrDim;
-  	GLuint *attrDims;
-  	GLuint *vaos;
-	GLuint buffers[2];
-};
+// typedef struct meshGLMesh meshGLMesh;
+// struct meshGLMesh {
+// 	GLuint triNum, vertNum, vaoNum, attrNum, attrDim;
+//   	GLuint *attrDims;
+//   	GLuint *vaos;
+// 	GLuint buffers[2];
+// };
 
 /* Initializes an OpenGL mesh from a non-OpenGL mesh. vaoNum is the number of
 vertex array objects attached to this mesh storage. Typically vaoNum equals the
@@ -135,13 +159,20 @@ number of distinct shader programs that will need to draw the mesh. Returns 0
 on success, non-zero on failure. */
 int meshGLInitialize(meshGLMesh *meshGL, meshMesh *mesh, GLuint attrNum,
                      GLuint attrDims[], GLuint vaoNum) {
+
+	printf("%p\n", mesh->attrDim);
     meshGL->attrDims = (GLuint *)malloc((attrNum + vaoNum) * sizeof(GLuint));
+    
     if (meshGL->attrDims == NULL)
         return 1;
+
     for (int i = 0; i < attrNum; i += 1)
         meshGL->attrDims[i] = attrDims[i];
+
     meshGL->vaos = &meshGL->attrDims[attrNum];
+
     glGenVertexArrays(vaoNum, meshGL->vaos);
+
     meshGL->vaoNum = vaoNum;
     meshGL->attrNum = attrNum;
     meshGL->triNum = mesh->triNum;

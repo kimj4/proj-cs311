@@ -18,7 +18,7 @@ struct sceneNode {
 /* Initializes a sceneNode struct. The translation and rotation are initialized to trivial values. The user must remember to call sceneDestroy or
 sceneDestroyRecursively when finished. Returns 0 if no error occurred. */
 int sceneInitialize(sceneNode *node, GLuint unifDim, GLuint texNum,
-      meshGLODE *mesh, sceneNode *firstChild, sceneNode *nextSibling) {
+      meshGLODE *meshGLO, sceneNode *firstChild, sceneNode *nextSibling) {
   node->unif = (GLdouble *)malloc(unifDim * sizeof(GLdouble) +
       texNum * sizeof(texTexture *));
   if (node->unif == NULL)
@@ -28,7 +28,7 @@ int sceneInitialize(sceneNode *node, GLuint unifDim, GLuint texNum,
   mat33Identity(node->rotation);
 	vecSet(3, node->translation, 0.0, 0.0, 0.0);
 	node->unifDim = unifDim;
-	node->meshGLODE = mesh;
+	node->meshGLODE = meshGLO;
 	node->firstChild = firstChild;
 	node->nextSibling = nextSibling;
 	return 0;
@@ -78,7 +78,7 @@ void sceneSetTranslation(sceneNode *node, GLdouble transl[3]) {
 
 /* Sets the scene's mesh. */
 void sceneSetMesh(sceneNode *node, meshGLMesh *mesh) {
-	node->meshGL = mesh;
+	node->meshGLODE->meshGL = mesh;
 }
 
 /* Sets the node's first child. */
@@ -160,6 +160,7 @@ void sceneRender(sceneNode *node, GLdouble parent[4][4], GLint modelingLoc,
 		GLuint unifNum, GLuint unifDims[], GLint unifLocs[], GLuint VAOindex, GLint *textureLocs) {
 	int i;
 
+
 	// render the textures (Josh says to assume max of 8 concurrent textures)
 	for (i = 0; i < node->texNum; i++) {
 		switch(i) {
@@ -202,13 +203,17 @@ void sceneRender(sceneNode *node, GLdouble parent[4][4], GLint modelingLoc,
 		}
 	}
 
+
 	/* Set the uniform modeling matrix. */
 	GLdouble selfIsom[4][4], parentMultiplied[4][4];
 	GLfloat pmGL[4][4];
+
 	mat44Isometry(node->rotation, node->translation, selfIsom);
+
 	mat444Multiply(parent, selfIsom, parentMultiplied);
 	mat44OpenGL(parentMultiplied, pmGL);
 	glUniformMatrix4fv(modelingLoc, 1, GL_FALSE, (GLfloat *)pmGL);
+
 
 	/* Set the other uniforms. */
 	int curUnifIdx = 0;
@@ -249,8 +254,11 @@ void sceneRender(sceneNode *node, GLdouble parent[4][4], GLint modelingLoc,
 		}
 	}
 
+
 	/* Render the mesh */
-	meshGLRender(node->meshGL, VAOindex);
+
+	meshGLRender(node->meshGLODE->meshGL, VAOindex);
+
 
 	/* unrender all the textures that were previously rendered. (again up to 8)*/
 	for (i = 0; i < node->texNum; i++) {
@@ -289,6 +297,7 @@ void sceneRender(sceneNode *node, GLdouble parent[4][4], GLint modelingLoc,
 			}
 		}
 	}
+
 
 	// /* render child and sibling */
 	if (node->firstChild != NULL) {
