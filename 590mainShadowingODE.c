@@ -397,7 +397,7 @@ int initializeShaderProgram(void) {
 	return (program == 0);
 }
 //Collision detection 
-static void nearCallback(void *data, dGeomID o1, dGeomID o2)ß{
+static void nearCallback(void *data, dGeomID o1, dGeomID o2){
   
   dContact contact[max_Contact];
 

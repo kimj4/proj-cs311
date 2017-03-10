@@ -27,15 +27,20 @@ double getTime(void) {
 #include "560light.c"
 #include "590shadow.c"
 
+
 static dWorldID world;
 static dSpaceID space;
 static dJointGroupID contactgroup;
 static dGeomID ground;
+<<<<<<< HEAD
 static dReal radius = 0.25;
 static dReal length = 1.0;
 
 #define DENSITY (5.0)
 #define max_Contact 15
+=======
+#define max_Contact 10
+>>>>>>> c7f9090043bd95ef80bdc01d5e593777aabb633e
 
 camCamera cam;
 texTexture texH, texV, texW, texT, texL;
@@ -454,7 +459,10 @@ int initializeShaderProgram(void) {
 	return (program == 0);
 }
 
+<<<<<<< HEAD
 //Collision Detection from the manual
+=======
+>>>>>>> c7f9090043bd95ef80bdc01d5e593777aabb633e
 static void nearCallback(void *data, dGeomID o1, dGeomID o2){
   
   dContact contact[max_Contact];
@@ -469,8 +477,12 @@ static void nearCallback(void *data, dGeomID o1, dGeomID o2){
   else{
 	  //number of contacts
 	  int n = dCollide(o1, o2, max_Contact, &contact[0].geom, sizeof(dContact));
+<<<<<<< HEAD
 	  int i;
 	  for (i = 0; i < n; i++) {
+=======
+	  for (int i = 0; i < n; i++) {
+>>>>>>> c7f9090043bd95ef80bdc01d5e593777aabb633e
       	contact[i].surface.mode = dContactBounce;
       	contact[i].surface.mu   = dInfinity;
       	contact[i].surface.bounce     = 0.0; // (0.0~1.0) restitution parameter
@@ -480,7 +492,11 @@ static void nearCallback(void *data, dGeomID o1, dGeomID o2){
     
   	  }
   }
+<<<<<<< HEAD
 
+=======
+  dSpaceCollide(space, 0, &nearCallback);
+>>>>>>> c7f9090043bd95ef80bdc01d5e593777aabb633e
 }
 
 void render(void) {
