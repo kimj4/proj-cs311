@@ -31,6 +31,11 @@ static dWorldID world;
 static dSpaceID space;
 static dJointGroupID contactgroup;
 static dGeomID ground;
+static dReal radius = 0.25;
+static dReal length = 1.0;
+
+#define DENSITY (5.0)
+#define max_Contact 15
 
 camCamera cam;
 texTexture texH, texV, texW, texT, texL;
@@ -312,18 +317,18 @@ int initializeScene(void) {
 }
 
 void destroyScene(void) {
-// 	texDestroy(&texH);
-// 	texDestroy(&texV);
-// 	texDestroy(&texW);
-// 	texDestroy(&texT);
-// 	texDestroy(&texL);
-// //implement meshGLODE destruction
-// 	meshGLDestroy(&meshH);
-// 	meshGLDestroy(&meshV);
-// 	meshGLDestroy(&meshW);
-// 	meshGLDestroy(&meshT);
-// 	meshGLDestroy(&meshL);
-// 	sceneDestroyRecursively(&nodeH);
+ 	texDestroy(&texH);
+ 	texDestroy(&texV);
+ 	texDestroy(&texW);
+ 	texDestroy(&texT);
+ 	texDestroy(&texL);
+   //implement meshGLODE destruction
+ 	meshGLDestroy(&meshGLH);
+ 	meshGLDestroy(&meshGLV);
+ 	meshGLDestroy(&meshGLW);
+ 	meshGLDestroy(&meshGLT);
+ 	meshGLDestroy(&meshGLL);
+ 	sceneDestroyRecursively(&nodeH);
 }
 
 /* Returns 0 on success, non-zero on failure. Warning: If initialization fails
@@ -449,26 +454,33 @@ int initializeShaderProgram(void) {
 	return (program == 0);
 }
 
-static void nearCallback(void *data, dGeomID o1, dGeomID o2)
-{
-  const int N = 10;
-  dContact contact[N];
+//Collision Detection from the manual
+static void nearCallback(void *data, dGeomID o1, dGeomID o2){
+  
+  dContact contact[max_Contact];
 
-  //int isGround = ((ground == o1) || (ground == o2));
-
-  int n =  dCollide(o1,o2,N,&contact[0].geom,sizeof(dContact));
-
-  //if (isGround)  {
-	if (n >= 1) {
-    	for (int i = 0; i < n; i++) {
+  if (dGeomIsSpace(o1) || dGeomIsSpace(o2)) {
+	dSpaceCollide2(o1, o2, data, &nearCallback);
+	if (dGeomIsSpace(o1))
+		dSpaceCollide((dSpaceID)o1, data, &nearCallback);
+	if (dGeomIsSpace(o2))
+		dSpaceCollide((dSpaceID)o2, data, &nearCallback);
+  }
+  else{
+	  //number of contacts
+	  int n = dCollide(o1, o2, max_Contact, &contact[0].geom, sizeof(dContact));
+	  int i;
+	  for (i = 0; i < n; i++) {
       	contact[i].surface.mode = dContactBounce;
       	contact[i].surface.mu   = dInfinity;
       	contact[i].surface.bounce     = 0.0; // (0.0~1.0) restitution parameter
       	contact[i].surface.bounce_vel = 0.0; // minimum incoming velocity for bounce
-      	dJointID c = dJointCreateContact(world, contactgroup, &contact[i]);
-      	dJointAttach (c, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
-    }
+      	dJointID c = dJointCreateContact(world,contactgroup,&contact[i]);
+      	dJointAttach (c,dGeomGetBody(contact[i].geom.g1),dGeomGetBody(contact[i].geom.g2));
+    
+  	  }
   }
+
 }
 
 void render(void) {
@@ -514,12 +526,15 @@ void render(void) {
 	shadowUnrender(GL_TEXTURE7);
 	shadowUnrender(GL_TEXTURE6);
 
+
 	dSpaceCollide(space, 0, &nearCallback);
 	dWorldStep(world, 0.01);
 	dJointGroupEmpty(contactgroup);
 
 	const dReal *pos1 = dBodyGetPosition(nodeL.body);
+	const dReal *rot1 = dBodyGetRotation(nodeL.body);
 	nodeL.translation[2] = pos1[2];
+	//nodeL.rotation = rot1;
 	printf("++ Leaves be here %f\n",pos1[0]);
 	printf("++ Leaves be here %f\n",pos1[1]);
 	printf("++ Leaves be here %f\n\n",pos1[2]);
@@ -595,6 +610,7 @@ int main(void) {
   destroyScene();
 	glfwDestroyWindow(window);
   glfwTerminate();
-
+  dWorldDestroy(world);
+  dCloseODE();
   return 0;
 }
