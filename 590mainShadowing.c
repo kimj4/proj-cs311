@@ -27,37 +27,28 @@ double getTime(void) {
 #include "560light.c"
 #include "590shadow.c"
 
-
+// === ODE globals ====
 static dWorldID world;
 static dSpaceID space;
 static dJointGroupID contactgroup;
 static dGeomID ground;
-
 static dReal radius = 0.25;
 static dReal length = 1.0;
 
 #define DENSITY (5.0)
-#define max_Contact 15
-
 #define max_Contact 10
 
-
+// ==== scene globals ====
 camCamera cam;
 texTexture texH, texV, texW, texT, texL;
 meshGLODE meshGLODEH, meshGLODEV, meshGLODEW, meshGLODET, meshGLODEL;
 meshGLMesh meshGLH, meshGLV, meshGLW, meshGLT, meshGLL;
 sceneNode nodeH, nodeV, nodeW, nodeT, nodeL;
-/* We need just one shadow program, because all of our meshes have the same
-attribute structure. */
 shadowProgram sdwProg;
-shadowProgram sdwProg2;
-/* We need one shadow map per shadow-casting light. */
+
 lightLight light;
 shadowMap sdwMap;
 
-lightLight light2;
-shadowMap sdwMap2;
-/* The main shader program has extra hooks for shadowing. */
 GLuint program;
 GLint viewingLoc, modelingLoc;
 GLint unifLocs[1], textureLocs[1];
@@ -65,9 +56,7 @@ GLint attrLocs[3];
 GLint lightPosLoc, lightColLoc, lightAttLoc, lightDirLoc, lightCosLoc;
 GLint camPosLoc;
 GLint viewingSdwLoc, textureSdwLoc;
-//TODO: do i need two cameras?
-GLint lightPosLoc2, lightColLoc2, lightAttLoc2, lightDirLoc2, lightCosLoc2;
-GLint viewingSdwLoc2, textureSdwLoc2;
+
 
 void handleError(int error, const char *description) {
 	fprintf(stderr, "handleError: %d\n%s\n", error, description);
@@ -132,21 +121,19 @@ int initializeScene(void) {
 	if (texInitializeFile(&texH, "grass.jpg", GL_LINEAR, GL_LINEAR,
     		GL_REPEAT, GL_REPEAT) != 0)
     	return 1;
-			printf("%p\n", &texH);
-  if (texInitializeFile(&texV, "granite.jpg", GL_LINEAR, GL_LINEAR,
-  		GL_REPEAT, GL_REPEAT) != 0)
-  	return 2;
-		// printf("here\n");
+	if (texInitializeFile(&texV, "granite.jpg", GL_LINEAR, GL_LINEAR,
+			GL_REPEAT, GL_REPEAT) != 0)
+		return 2;
 
-  if (texInitializeFile(&texW, "water.jpg", GL_LINEAR, GL_LINEAR,
-  		GL_REPEAT, GL_REPEAT) != 0)
-  	return 3;
-  if (texInitializeFile(&texT, "trunk.jpg", GL_LINEAR, GL_LINEAR,
-  		GL_REPEAT, GL_REPEAT) != 0)
-  	return 4;
-  if (texInitializeFile(&texL, "tree.jpg", GL_LINEAR, GL_LINEAR,
-  		GL_REPEAT, GL_REPEAT) != 0)
-  	return 5;
+	if (texInitializeFile(&texW, "water.jpg", GL_LINEAR, GL_LINEAR,
+			GL_REPEAT, GL_REPEAT) != 0)
+		return 3;
+	if (texInitializeFile(&texT, "trunk.jpg", GL_LINEAR, GL_LINEAR,
+			GL_REPEAT, GL_REPEAT) != 0)
+		return 4;
+	if (texInitializeFile(&texL, "tree.jpg", GL_LINEAR, GL_LINEAR,
+			GL_REPEAT, GL_REPEAT) != 0)
+	return 5;
 	GLuint attrDims[3] = {3, 2, 3};
     double zs[12][12] = {
 		{5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 20.0},
@@ -180,20 +167,17 @@ int initializeScene(void) {
 	if (meshInitializeDissectedLandscape(&mesh, &meshLand, M_PI / 3.0, 1) != 0)
 		return 7;
 	/* There are now two VAOs per mesh. */
-	// changes: there are 3 to accomodate 2 light sources
-//meshGLODE usage here===============================	
-
-
-
-// meshGLInitialize(meshGLMesh *meshGL, meshMesh *mesh, GLuint attrNum,
-//                      GLuint attrDims[], GLuint vaoNum)
-
-	meshGLInitialize(&meshGLH, &mesh, 3, attrDims, 3);
 	
+
+	// ======================= meshGLODE usage here ===============================	
+	int vaoNums = 2;
+
+
+
+	meshGLInitialize(&meshGLH, &mesh, 3, attrDims, vaoNums);
 	meshGLVAOInitialize(&meshGLH, 0, attrLocs);
 	meshGLVAOInitialize(&meshGLH, 1, sdwProg.attrLocs);
-	meshGLVAOInitialize(&meshGLH, 2, sdwProg2.attrLocs);
-	meshGLODEInitialize(&meshGLODEH, &meshGLH, &mesh, 3, attrDims, 3, space);
+	meshGLODEInitialize(&meshGLODEH, &meshGLH, &mesh, space);
 	meshDestroy(&mesh);
 
 	if (meshInitializeDissectedLandscape(&mesh, &meshLand, M_PI / 3.0, 0) != 0)
@@ -209,61 +193,38 @@ int initializeScene(void) {
 	}
 
 
-
-
-
-
-	meshGLInitialize(&meshGLV, &mesh, 3, attrDims, 3);
-	
+	meshGLInitialize(&meshGLV, &mesh, 3, attrDims, vaoNums);
 	meshGLVAOInitialize(&meshGLV, 0, attrLocs);
 	meshGLVAOInitialize(&meshGLV, 1, sdwProg.attrLocs);
-	meshGLVAOInitialize(&meshGLV, 2, sdwProg2.attrLocs);
-	meshGLODEInitialize(&meshGLODEV, &meshGLV, &mesh, 3, attrDims, 3, space);
+	meshGLODEInitialize(&meshGLODEV, &meshGLV, &mesh, space);
 	meshDestroy(&mesh);
-
-
-
-
 
 
 	if (meshInitializeLandscape(&mesh, 12, 12, 5.0, (double *)ws) != 0)
 		return 9;
-	meshGLInitialize(&meshGLW, &mesh, 3, attrDims, 3);
+	meshGLInitialize(&meshGLW, &mesh, 3, attrDims, vaoNums);
 	
 	meshGLVAOInitialize(&meshGLW, 0, attrLocs);
 	meshGLVAOInitialize(&meshGLW, 1, sdwProg.attrLocs);
-	meshGLVAOInitialize(&meshGLW, 2, sdwProg2.attrLocs);
-	meshGLODEInitialize(&meshGLODEW, &meshGLW, &mesh, 3, attrDims, 3, space);
+	meshGLODEInitialize(&meshGLODEW, &meshGLW, &mesh, space);
 	meshDestroy(&mesh);
-
-
-
-
 
 
 	if (meshInitializeCapsule(&mesh, 1.0, 10.0, 1, 8) != 0)
 		return 10;
-	meshGLInitialize(&meshGLT, &mesh, 3, attrDims, 3);
+	meshGLInitialize(&meshGLT, &mesh, 3, attrDims, vaoNums);
 	meshGLVAOInitialize(&meshGLT, 0, attrLocs);
 	meshGLVAOInitialize(&meshGLT, 1, sdwProg.attrLocs);
-	meshGLVAOInitialize(&meshGLT, 2, sdwProg2.attrLocs);
-	meshGLODEInitialize(&meshGLODET, &meshGLT, &mesh, 3, attrDims, 3, space);
+	meshGLODEInitialize(&meshGLODET, &meshGLT, &mesh, space);
 	meshDestroy(&mesh);
-
-
-
-
-
-
 
 
 	if (meshInitializeBox(&mesh, -5, 5, -5, 5, -5, 5) != 0)
 		return 11;
-	meshGLInitialize(&meshGLL, &mesh, 3, attrDims, 3);
+	meshGLInitialize(&meshGLL, &mesh, 3, attrDims, vaoNums);
 	meshGLVAOInitialize(&meshGLL, 0, attrLocs);
 	meshGLVAOInitialize(&meshGLL, 1, sdwProg.attrLocs);
-	meshGLVAOInitialize(&meshGLL, 2, sdwProg2.attrLocs);
-	meshGLODEInitialize(&meshGLODEL, &meshGLL, &mesh, 3, attrDims, 3, space);
+	meshGLODEInitialize(&meshGLODEL, &meshGLL, &mesh, space);
 	meshDestroy(&mesh);
 //pass meshGLODE to a sceneNode
 	if (sceneInitialize(&nodeW, 3, 1, &meshGLODEW, NULL, NULL, world) != 0)
@@ -289,15 +250,9 @@ int initializeScene(void) {
 	dReal x = trans[0];
 	dReal y = trans[1];
 	dReal z = trans[2];
-	printf("%f\n", z);
+
 	dBodySetPosition (nodeL.body, x, y, z);
 	const dReal *pos1 = dBodyGetPosition(nodeL.body);
-	printf("++ Leaves be here %f\n",pos1[0]);
-	printf("++ Leaves be here %f\n",pos1[1]);
-	printf("++ Leaves be here %f\n\n",pos1[2]);
-
-
-	
 
 
 	GLdouble unif[3] = {0.0, 0.0, 0.0};
@@ -357,23 +312,6 @@ int initializeCameraLight(void) {
 		return 1;
 	if (shadowMapInitialize(&sdwMap, 1024, 1024) != 0)
 		return 2;
-	vecSet(3, vec, 40.0, 40.0, 5.0);
-	camSetControls(&cam, camPERSPECTIVE, M_PI / 6.0, 10.0, 768.0, 768.0, 100.0,
-								 M_PI / 4.0, M_PI / 4.0, vec);
-	lightSetType(&light2, lightSPOT);
-	vecSet(3, vec, 50.0, 40.0, 25.0);
-	lightShineFrom(&light2, vec, M_PI * 3.0 / 4.0, M_PI * 3.0 / 4.0);
-	vecSet(3, vec, 1.0, 0.0, 0.0);
-	lightSetColor(&light2, vec);
-	vecSet(3, vec, 1.0, 0.0, 0.0);
-	lightSetAttenuation(&light2, vec);
-	lightSetSpotAngle(&light2, M_PI / 2.0);
-	if (shadowProgramInitialize(&sdwProg2, 3) != 0)
-		return 3;
-	if (shadowMapInitialize(&sdwMap2, 1024, 1024) != 0)
-		return 4;
-
-
 	return 0;
 }
 
@@ -455,7 +393,6 @@ int initializeShaderProgram(void) {
 		viewingSdwLoc = glGetUniformLocation(program, "viewingSdw");
 		textureSdwLoc = glGetUniformLocation(program, "textureSdw");
 	}
-
 	return (program == 0);
 }
 
@@ -463,37 +400,32 @@ int initializeShaderProgram(void) {
 //Collision Detection from the manual
 
 static void nearCallback(void *data, dGeomID o1, dGeomID o2){
-  
-  dContact contact[max_Contact];
+	dContact contact[max_Contact];
 
-  if (dGeomIsSpace(o1) || dGeomIsSpace(o2)) {
-	dSpaceCollide2(o1, o2, data, &nearCallback);
-	if (dGeomIsSpace(o1))
-		dSpaceCollide((dSpaceID)o1, data, &nearCallback);
-	if (dGeomIsSpace(o2))
-		dSpaceCollide((dSpaceID)o2, data, &nearCallback);
+	if (dGeomIsSpace(o1) || dGeomIsSpace(o2)) {
+		printf("nearCallback: if\n");
+		dSpaceCollide2(o1, o2, data, &nearCallback);
+	
+		if (dGeomIsSpace(o1))
+			dSpaceCollide((dSpaceID)o1, data, &nearCallback);
+		if (dGeomIsSpace(o2))
+			dSpaceCollide((dSpaceID)o2, data, &nearCallback);
+  	} else {
+  		// printf("nearCallback: else\n");
+  		// printf("o1: %p\n", o1);
+	  	//number of contacts
+	  	int n = dCollide(o1, o2, max_Contact, &contact[0].geom, sizeof(contact[0].geom));
+	  // int i;
+	  // for (i = 0; i < n; i++) {
+	  // for (int i = 0; i < n; i++) {
+   //    	contact[i].surface.mode = dContactBounce;
+   //    	contact[i].surface.mu   = dInfinity;
+   //    	contact[i].surface.bounce     = 0.0; // (0.0~1.0) restitution parameter
+   //    	contact[i].surface.bounce_vel = 0.0; // minimum incoming velocity for bounce
+   //    	dJointID c = dJointCreateContact(world,contactgroup,&contact[i]);
+   //    	dJointAttach (c,dGeomGetBody(contact[i].geom.g1),dGeomGetBody(contact[i].geom.g2));
+  	//  }
   }
-  else{
-	  //number of contacts
-	  int n = dCollide(o1, o2, max_Contact, &contact[0].geom, sizeof(dContact));
-
-	  int i;
-	  for (i = 0; i < n; i++) {
-
-	  for (int i = 0; i < n; i++) {
-
-      	contact[i].surface.mode = dContactBounce;
-      	contact[i].surface.mu   = dInfinity;
-      	contact[i].surface.bounce     = 0.0; // (0.0~1.0) restitution parameter
-      	contact[i].surface.bounce_vel = 0.0; // minimum incoming velocity for bounce
-      	dJointID c = dJointCreateContact(world,contactgroup,&contact[i]);
-      	dJointAttach (c,dGeomGetBody(contact[i].geom.g1),dGeomGetBody(contact[i].geom.g2));
-    
-  	  }
-  }
-
-
-
 }
 
 void render(void) {
@@ -507,8 +439,6 @@ void render(void) {
 	glGetIntegerv(GL_VIEWPORT, viewport);
 	GLint sdwTextureLocs[1] = {-1};
 	shadowMapRender(&sdwMap, &sdwProg, &light, -100.0, -1.0);
-	shadowMapRender(&sdwMap2, &sdwProg2, &light2, -100.0, -1.0);
-	
 	sceneRender(&nodeH, identity, sdwProg.modelingLoc, 0, NULL, NULL, 1,
 		sdwTextureLocs);
 
@@ -529,16 +459,12 @@ void render(void) {
 	lightRender(&light, lightPosLoc, lightColLoc, lightAttLoc, lightDirLoc,
 		lightCosLoc);
 	shadowRender(&sdwMap, viewingSdwLoc, GL_TEXTURE7, 7, textureSdwLoc);
-	lightRender(&light2, lightPosLoc2, lightColLoc2, lightAttLoc2, lightDirLoc2, lightCosLoc2);
-	shadowRender(&sdwMap2, viewingSdwLoc2, GL_TEXTURE6, 6, textureSdwLoc2);
 	GLuint unifDims[1] = {3};
 	sceneRender(&nodeH, identity, modelingLoc, 1, unifDims, unifLocs, 0,
 		textureLocs);
 	// printf("Render: sceneRender on scene finishes\n");
 	/* For each shadow-casting light, turn it off when finished rendering. */
 	shadowUnrender(GL_TEXTURE7);
-	shadowUnrender(GL_TEXTURE6);
-
 
 	dSpaceCollide(space, 0, &nearCallback);
 	dWorldStep(world, 0.01);
@@ -547,10 +473,7 @@ void render(void) {
 	const dReal *pos1 = dBodyGetPosition(nodeL.body);
 	const dReal *rot1 = dBodyGetRotation(nodeL.body);
 	nodeL.translation[2] = pos1[2];
-	//nodeL.rotation = rot1;
-	printf("++ Leaves be here %f\n",pos1[0]);
-	printf("++ Leaves be here %f\n",pos1[1]);
-	printf("++ Leaves be here %f\n\n",pos1[2]);
+
 
 }
 
@@ -560,70 +483,69 @@ int main(void) {
 	world = dWorldCreate();
 	space = dHashSpaceCreate(0);
 	contactgroup = dJointGroupCreate(0);
-	dWorldSetGravity(world, 0, 0, -.1);
+	dWorldSetGravity(world, 0, 0, -9.81);
 	ground = dCreatePlane(space, 0, 0, 1, 0);
 
 	double oldTime;
 	double newTime = getTime();
-  glfwSetErrorCallback(handleError);
-  if (glfwInit() == 0) {
-  	fprintf(stderr, "main: glfwInit failed.\n");
-    return 1;
-  }
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+	glfwSetErrorCallback(handleError);
+	if (glfwInit() == 0) {
+		fprintf(stderr, "main: glfwInit failed.\n");
+		return 1;
+	}
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-  GLFWwindow *window;
-  window = glfwCreateWindow(768, 768, "Shadows", NULL, NULL);
-  if (window == NULL) {
-  	fprintf(stderr, "main: glfwCreateWindow failed.\n");
-    glfwTerminate();
-    return 2;
-  }
-  glfwSetWindowSizeCallback(window, handleResize);
-  glfwSetKeyCallback(window, handleKey);
-  glfwMakeContextCurrent(window);
-  if (gl3wInit() != 0) {
-  	fprintf(stderr, "main: gl3wInit failed.\n");
-  	glfwDestroyWindow(window);
-  	glfwTerminate();
-  	return 3;
-  }
+	GLFWwindow *window;
+	window = glfwCreateWindow(768, 768, "Shadows", NULL, NULL);
+	if (window == NULL) {
+		fprintf(stderr, "main: glfwCreateWindow failed.\n");
+		glfwTerminate();
+		return 2;
+	}
+	glfwSetWindowSizeCallback(window, handleResize);
+	glfwSetKeyCallback(window, handleKey);
+	glfwMakeContextCurrent(window);
+	if (gl3wInit() != 0) {
+		fprintf(stderr, "main: gl3wInit failed.\n");
+		glfwDestroyWindow(window);
+		glfwTerminate();
+		return 3;
+	}
 
-  fprintf(stderr, "main: OpenGL %s, GLSL %s.\n",
+	fprintf(stderr, "main: OpenGL %s, GLSL %s.\n",
 					glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
 	/* We no longer do glDepthRange(1.0, 0.0). Instead we have changed our
 	projection matrices. */
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
 
-  if (initializeShaderProgram() != 0)
-  	return 3;
-  /* Initialize the shadow mapping before the meshes. Why? */
+	if (initializeShaderProgram() != 0)
+		return 3;
 	if (initializeCameraLight() != 0)
 		return 4;
-  if (initializeScene() != 0)
-  	return 5;
+	if (initializeScene() != 0)
+		return 5;
 
-  while (glfwWindowShouldClose(window) == 0) {
-  	oldTime = newTime;
-  	newTime = getTime();
-  	if (floor(newTime) - floor(oldTime) >= 1.0)
+	while (glfwWindowShouldClose(window) == 0) {
+		oldTime = newTime;
+		newTime = getTime();
+		if (floor(newTime) - floor(oldTime) >= 1.0)
 		fprintf(stderr, "main: %f frames/sec\n", 1.0 / (newTime - oldTime));
 		render();
-    glfwSwapBuffers(window);
-    glfwPollEvents();
-  }
-  /* Deallocate more resources than ever. */
-  shadowProgramDestroy(&sdwProg);
-  shadowMapDestroy(&sdwMap);
-  glDeleteProgram(program);
-  destroyScene();
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	}
+	/* Deallocate more resources than ever. */
+	shadowProgramDestroy(&sdwProg);
+	shadowMapDestroy(&sdwMap);
+	glDeleteProgram(program);
+	destroyScene();
 	glfwDestroyWindow(window);
-  glfwTerminate();
-  dWorldDestroy(world);
-  dCloseODE();
-  return 0;
+	glfwTerminate();
+	dWorldDestroy(world);
+	dCloseODE();
+	return 0;
 }

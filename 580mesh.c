@@ -29,14 +29,7 @@ struct meshGLODE {
 // forward declarations
 int meshGLInitialize(meshGLMesh *meshGL, meshMesh *mesh, GLuint attrNum, GLuint attrDims[], GLuint vaoNum);
 
-
-
-
-
-int meshGLODEInitialize(meshGLODE *meshGLODE, meshGLMesh *meshGL, meshMesh *mesh, int attrNum,
-						GLuint attrDims[], GLuint vaoNum, dSpaceID space) {
-
-
+int meshGLODEInitialize(meshGLODE *meshGLODE, meshGLMesh *meshGL, meshMesh *mesh, dSpaceID space) {
 	meshGLODE->meshGL = meshGL;
 
 	dTriMeshDataID meshData = dGeomTriMeshDataCreate();
@@ -45,37 +38,23 @@ int meshGLODEInitialize(meshGLODE *meshGLODE, meshGLMesh *meshGL, meshMesh *mesh
 	verts = (dReal *)malloc(mesh->vertNum * sizeof(dReal));
 	if (verts == NULL)
 		return 1;
-
-	int *index;
-	index = (int *)malloc(mesh->triNum * attrNum * sizeof(unsigned int));
+	index = (int *)malloc(mesh->triNum * meshGL->attrNum * sizeof(unsigned int));
 	if (verts == NULL)
 		return 2;
 	for (i = 0; i < mesh->vertNum; i++){
 		verts[i] = mesh->vert[i];
 	}
-
 	meshGLODE->vert = verts;
-	
+
+	int *index;
 	for (i = 0; i < 3 * mesh->triNum; i++){
 		index[i] = mesh->tri[i];
 	}
 	meshGLODE->tri = index;
-
-	// meshGLInitialize(&meshGLODE->meshGL, mesh, attrNum, attrDims, vaoNum);
 	
 	dGeomTriMeshDataBuildSingle(meshData, meshGLODE->vert, 3 * sizeof(dReal), meshGLODE->meshGL->vertNum, meshGLODE->tri,
 		 3 * meshGLODE->meshGL->triNum, 3 * sizeof(unsigned int));
 	meshGLODE->geom = dCreateTriMesh(space, meshData, 0, 0, 0); 
-	/*
-	mesh->tri = (GLuint *)malloc(triNum * 3 * sizeof(GLuint) +
-		vertNum * attrDim * sizeof(GLdouble));
-	if (mesh->tri != NULL) {
-		mesh->vert = (GLdouble *)&(mesh->tri[triNum * 3]);
-		mesh->triNum = triNum;
-		mesh->vertNum = vertNum;
-		mesh->attrDim = attrDim;
-		*/
-
 	return 0;
 }
 
@@ -160,7 +139,6 @@ on success, non-zero on failure. */
 int meshGLInitialize(meshGLMesh *meshGL, meshMesh *mesh, GLuint attrNum,
                      GLuint attrDims[], GLuint vaoNum) {
 
-	printf("%p\n", mesh->attrDim);
     meshGL->attrDims = (GLuint *)malloc((attrNum + vaoNum) * sizeof(GLuint));
     
     if (meshGL->attrDims == NULL)

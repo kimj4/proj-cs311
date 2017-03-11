@@ -146,7 +146,6 @@ void sceneSetTexture(sceneNode *node, texTexture *tex[]) {
 		// vecCopy(node->texNum, tex, node->tex);
 		int i;
 		for (i = 0; i < node->texNum; i++) {
-			printf("here: %p\n", tex[i]);
 			node->tex[i] = tex[i];
 		}
 }
