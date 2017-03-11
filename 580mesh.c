@@ -38,22 +38,24 @@ int meshGLODEInitialize(meshGLODE *meshGLODE, meshGLMesh *meshGL, meshMesh *mesh
 	verts = (dReal *)malloc(mesh->vertNum * sizeof(dReal));
 	if (verts == NULL)
 		return 1;
-	index = (int *)malloc(mesh->triNum * meshGL->attrNum * sizeof(unsigned int));
-	if (verts == NULL)
-		return 2;
+	
 	for (i = 0; i < mesh->vertNum; i++){
 		verts[i] = mesh->vert[i];
 	}
 	meshGLODE->vert = verts;
 
 	int *index;
+	index = (int *)malloc(mesh->triNum * meshGL->attrNum * sizeof(unsigned int));
+	if (verts == NULL)
+		return 2;
 	for (i = 0; i < 3 * mesh->triNum; i++){
 		index[i] = mesh->tri[i];
 	}
 	meshGLODE->tri = index;
 	
-	dGeomTriMeshDataBuildSingle(meshData, meshGLODE->vert, 3 * sizeof(dReal), meshGLODE->meshGL->vertNum, meshGLODE->tri,
-		 3 * meshGLODE->meshGL->triNum, 3 * sizeof(unsigned int));
+	dGeomTriMeshDataBuildSingle(meshData, meshGLODE->vert, 3 * sizeof(dReal), 
+								meshGLODE->meshGL->vertNum, meshGLODE->tri,
+		 						3 * meshGLODE->meshGL->triNum, 3 * sizeof(unsigned int));
 	meshGLODE->geom = dCreateTriMesh(space, meshData, 0, 0, 0); 
 	return 0;
 }
@@ -121,16 +123,6 @@ void meshDestroy(meshMesh *mesh) {
 
 
 /*** OpenGL ***/
-
-/* Feel free to read from this struct's members, but don't write to them,
-except through accessor functions. */
-// typedef struct meshGLMesh meshGLMesh;
-// struct meshGLMesh {
-// 	GLuint triNum, vertNum, vaoNum, attrNum, attrDim;
-//   	GLuint *attrDims;
-//   	GLuint *vaos;
-// 	GLuint buffers[2];
-// };
 
 /* Initializes an OpenGL mesh from a non-OpenGL mesh. vaoNum is the number of
 vertex array objects attached to this mesh storage. Typically vaoNum equals the
@@ -279,8 +271,6 @@ int meshInitializeEllipse(meshMesh *mesh, GLdouble x, GLdouble y,
 	}
 	return error;
 }
-
-
 
 /*** Convenience initializers: 3D ***/
 

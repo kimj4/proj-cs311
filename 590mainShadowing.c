@@ -36,14 +36,18 @@ static dReal radius = 0.25;
 static dReal length = 1.0;
 
 #define DENSITY (5.0)
-#define max_Contact 10
+#define max_contacts 10
+
+
+dContactGeom contact_array[100];
+int skip = sizeof(dContactGeom);
 
 // ==== scene globals ====
 camCamera cam;
-texTexture texH, texV, texW, texT, texL;
-meshGLODE meshGLODEH, meshGLODEV, meshGLODEW, meshGLODET, meshGLODEL;
-meshGLMesh meshGLH, meshGLV, meshGLW, meshGLT, meshGLL;
-sceneNode nodeH, nodeV, nodeW, nodeT, nodeL;
+texTexture texH, texV, texW, texT, texL, texTrebuchet;
+meshGLODE meshGLODEH, meshGLODEV, meshGLODEW, meshGLODET, meshGLODEL, meshGLODETrebuchet;
+meshGLMesh meshGLH, meshGLV, meshGLW, meshGLT, meshGLL, meshGLTrebuchet;
+sceneNode nodeH, nodeV, nodeW, nodeT, nodeL, nodeTrebuchet;
 shadowProgram sdwProg;
 
 lightLight light;
@@ -167,12 +171,10 @@ int initializeScene(void) {
 	if (meshInitializeDissectedLandscape(&mesh, &meshLand, M_PI / 3.0, 1) != 0)
 		return 7;
 	/* There are now two VAOs per mesh. */
-	
+
 
 	// ======================= meshGLODE usage here ===============================	
 	int vaoNums = 2;
-
-
 
 	meshGLInitialize(&meshGLH, &mesh, 3, attrDims, vaoNums);
 	meshGLVAOInitialize(&meshGLH, 0, attrLocs);
@@ -180,6 +182,7 @@ int initializeScene(void) {
 	meshGLODEInitialize(&meshGLODEH, &meshGLH, &mesh, space);
 	meshDestroy(&mesh);
 
+	// === dissected landscape ===
 	if (meshInitializeDissectedLandscape(&mesh, &meshLand, M_PI / 3.0, 0) != 0)
 		return 8;
 	meshDestroy(&meshLand);
@@ -191,8 +194,6 @@ int initializeScene(void) {
 		vert[3] = (vert[0] * normal[0] + vert[1] * normal[1]) / 20.0;
 		vert[4] = vert[2] / 20.0;
 	}
-
-
 	meshGLInitialize(&meshGLV, &mesh, 3, attrDims, vaoNums);
 	meshGLVAOInitialize(&meshGLV, 0, attrLocs);
 	meshGLVAOInitialize(&meshGLV, 1, sdwProg.attrLocs);
@@ -200,6 +201,7 @@ int initializeScene(void) {
 	meshDestroy(&mesh);
 
 
+	// === landscape ===
 	if (meshInitializeLandscape(&mesh, 12, 12, 5.0, (double *)ws) != 0)
 		return 9;
 	meshGLInitialize(&meshGLW, &mesh, 3, attrDims, vaoNums);
@@ -210,6 +212,7 @@ int initializeScene(void) {
 	meshDestroy(&mesh);
 
 
+	// === tree trunk ===
 	if (meshInitializeCapsule(&mesh, 1.0, 10.0, 1, 8) != 0)
 		return 10;
 	meshGLInitialize(&meshGLT, &mesh, 3, attrDims, vaoNums);
@@ -218,7 +221,7 @@ int initializeScene(void) {
 	meshGLODEInitialize(&meshGLODET, &meshGLT, &mesh, space);
 	meshDestroy(&mesh);
 
-
+	// === tree leaves === 
 	if (meshInitializeBox(&mesh, -5, 5, -5, 5, -5, 5) != 0)
 		return 11;
 	meshGLInitialize(&meshGLL, &mesh, 3, attrDims, vaoNums);
@@ -238,21 +241,23 @@ int initializeScene(void) {
 	if (sceneInitialize(&nodeH, 3, 1, &meshGLODEH, &nodeV, NULL, world) != 0)
 		return 12;
 //meshGLODE end usage=============
+	dReal x,y,z;
 
-	// tree leaves position ODE
+
 	GLdouble trans[3] = {40.0, 28.0, 5.0};
-	sceneSetTranslation(&nodeT, trans);
-	
+	sceneSetTranslation(&nodeT, trans); // tree trunk translation
+	x = trans[0];
+	y = trans[1];
+	z = trans[2];
+	dBodySetPosition(nodeT.body, x, y, z);
 
 
-	vecSet(3, trans, 25.0, 0.0, 20.0);
-	sceneSetTranslation(&nodeL, trans);
-	dReal x = trans[0];
-	dReal y = trans[1];
-	dReal z = trans[2];
-
+	vecSet(3, trans, 0.0, 0.0, 100.0);
+	sceneSetTranslation(&nodeL, trans); // tree leaves translation
+	x = trans[0];
+	y = trans[1];
+	z = trans[2];
 	dBodySetPosition (nodeL.body, x, y, z);
-	const dReal *pos1 = dBodyGetPosition(nodeL.body);
 
 
 	GLdouble unif[3] = {0.0, 0.0, 0.0};
@@ -398,35 +403,60 @@ int initializeShaderProgram(void) {
 
 
 //Collision Detection from the manual
+void nearCallback (void *data, dGeomID o1, dGeomID o2) {
+    if (dGeomIsSpace (o1) || dGeomIsSpace (o2)) { 
 
-static void nearCallback(void *data, dGeomID o1, dGeomID o2){
-	dContact contact[max_Contact];
+        // colliding a space with something :
+        dSpaceCollide2 (o1, o2, data,&nearCallback); 
+   
+        // collide all geoms internal to the space(s)
+        if (dGeomIsSpace (o1))
+            dSpaceCollide ((dSpaceID)o1, data, &nearCallback);
+        if (dGeomIsSpace (o2))
+            dSpaceCollide ((dSpaceID)o2, data, &nearCallback);
 
-	if (dGeomIsSpace(o1) || dGeomIsSpace(o2)) {
-		printf("nearCallback: if\n");
-		dSpaceCollide2(o1, o2, data, &nearCallback);
-	
-		if (dGeomIsSpace(o1))
-			dSpaceCollide((dSpaceID)o1, data, &nearCallback);
-		if (dGeomIsSpace(o2))
-			dSpaceCollide((dSpaceID)o2, data, &nearCallback);
-  	} else {
-  		// printf("nearCallback: else\n");
-  		// printf("o1: %p\n", o1);
-	  	//number of contacts
-	  	int n = dCollide(o1, o2, max_Contact, &contact[0].geom, sizeof(contact[0].geom));
-	  // int i;
-	  // for (i = 0; i < n; i++) {
-	  // for (int i = 0; i < n; i++) {
-   //    	contact[i].surface.mode = dContactBounce;
-   //    	contact[i].surface.mu   = dInfinity;
-   //    	contact[i].surface.bounce     = 0.0; // (0.0~1.0) restitution parameter
-   //    	contact[i].surface.bounce_vel = 0.0; // minimum incoming velocity for bounce
-   //    	dJointID c = dJointCreateContact(world,contactgroup,&contact[i]);
-   //    	dJointAttach (c,dGeomGetBody(contact[i].geom.g1),dGeomGetBody(contact[i].geom.g2));
-  	//  }
-  }
+    } else {
+        // colliding two non-space geoms, so generate contact points between o1 and o2
+        int num_contact = dCollide (o1, o2, max_contacts, contact_array, skip);
+
+
+        // const dReal *a = dGeomGetPosition(contact_array[num_contact].g1);
+        // const dReal *a = dGeomGetPosition(o1);
+        // dGeomSetPosition(o1, a[0] + 10, a[1], a[2]);
+		
+        // printf("%i\n", num_contact);
+        // add these contact points to the simulation ...
+    }
 }
+
+// static void nearCallback(void *data, dGeomID o1, dGeomID o2){
+// 	dContact contact[max_Contact];
+
+// 	if (dGeomIsSpace(o1) || dGeomIsSpace(o2)) {
+// 		printf("nearCallback: if\n");
+// 		dSpaceCollide2(o1, o2, data, &nearCallback);
+	
+// 		if (dGeomIsSpace(o1))
+// 			dSpaceCollide((dSpaceID)o1, data, &nearCallback);
+// 		if (dGeomIsSpace(o2))
+// 			dSpaceCollide((dSpaceID)o2, data, &nearCallback);
+//   	} else {
+//   		// printf("nearCallback: else\n");
+//   		// printf("o1: %p\n", o1);
+// 	  	//number of contacts
+// 	  	int n = dCollide(o1, o2, max_Contact, &contact[0].geom, sizeof(contact[0].geom));
+// 		int i;
+// 		for (int i = 0; i < n; i++) {
+// 			contact[i].surface.mode = dContactBounce;
+// 			contact[i].surface.mu   = dInfinity;
+// 			contact[i].surface.bounce     = 0.0; // (0.0~1.0) restitution parameter
+// 			contact[i].surface.bounce_vel = 0.0; // minimum incoming velocity for bounce
+// 			dJointID c = dJointCreateContact(world,contactgroup,&contact[i]);
+// 			dJointAttach(c,dGeomGetBody(contact[i].geom.g1),dGeomGetBody(contact[i].geom.g2));
+// 		}
+
+//   	}	
+// }
 
 void render(void) {
 
@@ -473,6 +503,12 @@ void render(void) {
 	const dReal *pos1 = dBodyGetPosition(nodeL.body);
 	const dReal *rot1 = dBodyGetRotation(nodeL.body);
 	nodeL.translation[2] = pos1[2];
+
+	// const dReal *a = dBodyGetPosition(nodeL.body); 
+	// const dReal *b = dGeomGetPosition(nodeL.meshGLODE->geom);
+
+	// printf("%f\n", a[2]);
+	// printf("%f\n", b[2]);
 
 
 }
