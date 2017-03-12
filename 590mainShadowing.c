@@ -403,22 +403,42 @@ int initializeShaderProgram(void) {
 
 
 //Collision Detection from the manual
-void nearCallback (void *data, dGeomID o1, dGeomID o2) {
+//May need dGeomID node.meshGLODE.geom
+static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
     if (dGeomIsSpace (o1) || dGeomIsSpace (o2)) { 
-
         // colliding a space with something :
-        dSpaceCollide2 (o1, o2, data,&nearCallback); 
+		 dSpaceCollide2 (o1, o2, data,&nearCallback); 
    
         // collide all geoms internal to the space(s)
-        if (dGeomIsSpace (o1))
+    	if (dGeomIsSpace (o1))
             dSpaceCollide ((dSpaceID)o1, data, &nearCallback);
-        if (dGeomIsSpace (o2))
+    	if (dGeomIsSpace (o2))
             dSpaceCollide ((dSpaceID)o2, data, &nearCallback);
+		
+    }
+		 else {
+			int i;
+			
+			dbodyID b1 = dGeomGetBody(o1);
+			dBodyID b2 = dGeomGetBody(o2);
 
-    } else {
-        // colliding two non-space geoms, so generate contact points between o1 and o2
-        int num_contact = dCollide (o1, o2, max_contacts, contact_array, skip);
+			if (b1 && b2 && dAreConnected(b1, b2))
+				return;
+			// colliding two non-space geoms, so generate contact points between o1 and o2
+			int num_contact = dCollide (o1, o2, max_contacts, contact[0].geom, sizeof(dContact));
 
+			if (num_contact > 0){
+				for (i=0; i<num_contact; i++){
+					contact[i].surface.mode = dContactSoftCFM | dcontactSoftERP | dContactBounce;
+					contact[i].surface.mu = dInfinity;
+					contact[i].surface.soft_cfm = 1e-8;
+					contact[i].surface.soft_erp = 1.0;
+					contact[i].surfaces.bounce = 0.25;
+					contact[i].surface.bounce_vel = 1.0;
+					dJointID con = dJointCrerateContact(world, contactgroup, &contact[i]);
+					dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
+			}
+		}
 
         // const dReal *a = dGeomGetPosition(contact_array[num_contact].g1);
         // const dReal *a = dGeomGetPosition(o1);
@@ -495,7 +515,7 @@ void render(void) {
 	// printf("Render: sceneRender on scene finishes\n");
 	/* For each shadow-casting light, turn it off when finished rendering. */
 	shadowUnrender(GL_TEXTURE7);
-
+//ODE simulation step
 	dSpaceCollide(space, 0, &nearCallback);
 	dWorldStep(world, 0.01);
 	dJointGroupEmpty(contactgroup);
