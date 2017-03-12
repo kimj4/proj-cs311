@@ -417,17 +417,30 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
 		
     }
 		 else {
-			int i;
-			
 			dBodyID b1 = dGeomGetBody(o1);
 			dBodyID b2 = dGeomGetBody(o2);
 
 			if (b1 && b2 && dAreConnected(b1, b2))
 				return;
-
+				
 			dContact contact[max_contacts];
 			// colliding two non-space geoms, so generate contact points between o1 and o2
 			int num_contact = dCollide (o1, o2, max_contacts, &contact[0].geom, sizeof(dContact));
+			int i;
+
+			//Added friction to ground
+			 if (o1 == ground || o2 == ground){
+				for(i = 0; i<num_contact; i++)
+				contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactApprox1;
+				contact[i].surface.mu = 0.5;
+				contact[i].surface.soft_cfm = 1e-8;
+				contact[i].surface.soft_erp = 1.0;
+				dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
+				dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
+			 }
+			
+			
+
 
 			if (num_contact > 0){
 				for (i=0; i<num_contact; i++){
