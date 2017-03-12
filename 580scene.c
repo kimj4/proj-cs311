@@ -47,6 +47,8 @@ void sceneDestroy(sceneNode *node) {
 		//free up the vert and tri pointers
 		free(node->meshGLODE->vert);
 		free(node->meshGLODE->tri);
+		//destroy the meshGL within node
+		meshGLDestroy(node->meshGLODE->meshGL);
 	node->unif = NULL;
 }
 

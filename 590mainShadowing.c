@@ -414,84 +414,49 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
             dSpaceCollide ((dSpaceID)o1, data, &nearCallback);
     	if (dGeomIsSpace (o2))
             dSpaceCollide ((dSpaceID)o2, data, &nearCallback);
+		}
+
+	else {
+		dBodyID b1 = dGeomGetBody(o1);
+		dBodyID b2 = dGeomGetBody(o2);
+
+		if (b1 && b2 && dAreConnected(b1, b2))
+			return;
+		dContact contact[max_contacts];
+		// colliding two non-space geoms, so generate contact points between o1 and o2
+		int num_contact = dCollide (o1, o2, max_contacts, &contact[0].geom, sizeof(dContact));
+		int i;
+
+		//Added friction to ground
+			if (o1 == ground || o2 == ground){
+			for(i = 0; i<num_contact; i++)
+			contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactApprox1;
+			contact[i].surface.mu = 0.5;
+			contact[i].surface.soft_cfm = 1e-8;
+			contact[i].surface.soft_erp = 1.0;
+			dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
+			dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
+			}
 		
-    }
-		 else {
-			dBodyID b1 = dGeomGetBody(o1);
-			dBodyID b2 = dGeomGetBody(o2);
 
-			if (b1 && b2 && dAreConnected(b1, b2))
-				return;
-				
-			dContact contact[max_contacts];
-			// colliding two non-space geoms, so generate contact points between o1 and o2
-			int num_contact = dCollide (o1, o2, max_contacts, &contact[0].geom, sizeof(dContact));
-			int i;
-
-			//Added friction to ground
-			 if (o1 == ground || o2 == ground){
-				for(i = 0; i<num_contact; i++)
-				contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactApprox1;
-				contact[i].surface.mu = 0.5;
+		if (num_contact > 0){
+			for (i=0; i<num_contact; i++){
+				contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
+				contact[i].surface.mu = dInfinity;
 				contact[i].surface.soft_cfm = 1e-8;
 				contact[i].surface.soft_erp = 1.0;
+				contact[i].surface.bounce = 0.25;
+				contact[i].surface.bounce_vel = 1.0;
 				dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
 				dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
-			 }
-			
-			
-
-
-			if (num_contact > 0){
-				for (i=0; i<num_contact; i++){
-					contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
-					contact[i].surface.mu = dInfinity;
-					contact[i].surface.soft_cfm = 1e-8;
-					contact[i].surface.soft_erp = 1.0;
-					contact[i].surface.bounce = 0.25;
-					contact[i].surface.bounce_vel = 1.0;
-					dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
-					dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
 			}
 		}
 
-        // const dReal *a = dGeomGetPosition(contact_array[num_contact].g1);
-        // const dReal *a = dGeomGetPosition(o1);
-        // dGeomSetPosition(o1, a[0] + 10, a[1], a[2]);
-		
-        // printf("%i\n", num_contact);
-        // add these contact points to the simulation ...
-    }
+	
+	}
 }
 
-// static void nearCallback(void *data, dGeomID o1, dGeomID o2){
-// 	dContact contact[max_Contact];
 
-// 	if (dGeomIsSpace(o1) || dGeomIsSpace(o2)) {
-// 		printf("nearCallback: if\n");
-// 		dSpaceCollide2(o1, o2, data, &nearCallback);
-	
-// 		if (dGeomIsSpace(o1))
-// 			dSpaceCollide((dSpaceID)o1, data, &nearCallback);
-// 		if (dGeomIsSpace(o2))
-// 			dSpaceCollide((dSpaceID)o2, data, &nearCallback);
-//   	} else {
-//   		// printf("nearCallback: else\n");
-//   		// printf("o1: %p\n", o1);
-// 	  	//number of contacts
-// 	  	int n = dCollide(o1, o2, max_Contact, &contact[0].geom, sizeof(contact[0].geom));
-// 		int i;
-// 		for (int i = 0; i < n; i++) {
-// 			contact[i].surface.mode = dContactBounce;
-// 			contact[i].surface.mu   = dInfinity;
-// 			contact[i].surface.bounce     = 0.0; // (0.0~1.0) restitution parameter
-// 			contact[i].surface.bounce_vel = 0.0; // minimum incoming velocity for bounce
-// 			dJointID c = dJointCreateContact(world,contactgroup,&contact[i]);
-// 			dJointAttach(c,dGeomGetBody(contact[i].geom.g1),dGeomGetBody(contact[i].geom.g2));
-// 		}
-
-//   	}	
-// }
 
 void render(void) {
 
@@ -530,6 +495,7 @@ void render(void) {
 	// printf("Render: sceneRender on scene finishes\n");
 	/* For each shadow-casting light, turn it off when finished rendering. */
 	shadowUnrender(GL_TEXTURE7);
+
 //ODE simulation step
 	dSpaceCollide(space, 0, &nearCallback);
 	dWorldStep(world, 0.01);
@@ -538,6 +504,8 @@ void render(void) {
 	const dReal *pos1 = dBodyGetPosition(nodeL.body);
 	const dReal *rot1 = dBodyGetRotation(nodeL.body);
 	nodeL.translation[2] = pos1[2];
+	//Derefernce rot1?
+	nodeL.rotation = rot1;
 
 	// const dReal *a = dBodyGetPosition(nodeL.body); 
 	// const dReal *b = dGeomGetPosition(nodeL.meshGLODE->geom);
@@ -547,15 +515,20 @@ void render(void) {
 
 
 }
-
-int main(void) {
-	
+void startODE(void){
 	dInitODE();
 	world = dWorldCreate();
 	space = dHashSpaceCreate(0);
 	contactgroup = dJointGroupCreate(0);
 	dWorldSetGravity(world, 0, 0, -9.81);
 	ground = dCreatePlane(space, 0, 0, 1, 0);
+}
+
+
+int main(void) {
+	//moved ODE setup into funct
+	startODE();
+	
 
 	double oldTime;
 	double newTime = getTime();
