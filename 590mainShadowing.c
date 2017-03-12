@@ -419,23 +419,25 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
 		 else {
 			int i;
 			
-			dbodyID b1 = dGeomGetBody(o1);
+			dBodyID b1 = dGeomGetBody(o1);
 			dBodyID b2 = dGeomGetBody(o2);
 
 			if (b1 && b2 && dAreConnected(b1, b2))
 				return;
+
+			dContact contact[max_contacts];
 			// colliding two non-space geoms, so generate contact points between o1 and o2
-			int num_contact = dCollide (o1, o2, max_contacts, contact[0].geom, sizeof(dContact));
+			int num_contact = dCollide (o1, o2, max_contacts, &contact[0].geom, sizeof(dContact));
 
 			if (num_contact > 0){
 				for (i=0; i<num_contact; i++){
-					contact[i].surface.mode = dContactSoftCFM | dcontactSoftERP | dContactBounce;
+					contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
 					contact[i].surface.mu = dInfinity;
 					contact[i].surface.soft_cfm = 1e-8;
 					contact[i].surface.soft_erp = 1.0;
-					contact[i].surfaces.bounce = 0.25;
+					contact[i].surface.bounce = 0.25;
 					contact[i].surface.bounce_vel = 1.0;
-					dJointID con = dJointCrerateContact(world, contactgroup, &contact[i]);
+					dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
 					dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
 			}
 		}
