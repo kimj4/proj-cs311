@@ -647,3 +647,13 @@ int meshInitializeDissectedLandscape(meshMesh *mesh, meshMesh *land,
 	}
 	return error;
 }
+
+int meshInitializeTrebuchet(meshMesh *mesh) {
+	// meshInitializeBox(meshMesh *mesh, GLdouble left, GLdouble right,
+	// 	GLdouble bottom, GLdouble top, GLdouble base, GLdouble lid)
+	if (meshInitializeBox(mesh, -10.0, 10.0, -10.0, 10.0, -2.0, 2.0) != 0) {
+		return 1;
+	} 
+
+
+}

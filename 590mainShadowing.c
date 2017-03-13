@@ -50,6 +50,21 @@ meshGLMesh meshGLH, meshGLV, meshGLW, meshGLT, meshGLL, meshGLTrebuchet;
 sceneNode nodeH, nodeV, nodeW, nodeT, nodeL, nodeTrebuchet;
 shadowProgram sdwProg;
 
+// trebuchet 
+meshGLODE wheelFL_GLODE, wheelFR_GLODE, wheelBL_GLODE, wheelBR_GLODE,
+		  axelF_GLODE, axelB_GLODE, baseL_GLODE, baseR_GLODE,
+		  supportFL_GLODE, supportFR_GLODE, supportBL_GLODE, supportBR_GLODE,
+		  cross_GLODE, arm_GLODE, counterweight_GLODE, bucket_GLODE;
+meshGLMesh wheelFL_GL, wheelFR_GL, wheelBL_GL, wheelBR_GL,
+		  axelF_GL, axelB_GL, baseL_GL, baseR_GL,
+		  supportFL_GL, supportFR_GL, supportBL_GL, supportBR_GL,
+		  cross_GL, arm_GL, counterweight_GL, bucket_GL;
+sceneNode wheelFL_node, wheelFR_node, wheelBL_node, wheelBR_node,
+		  axelF_node, axelB_node, baseL_node, baseR_node,
+		  supportFL_node, supportFR_node, supportBL_node, supportBR_node,
+		  cross_node, arm_node, counterweight_node, bucket_node;
+
+
 lightLight light;
 shadowMap sdwMap;
 
@@ -137,8 +152,28 @@ int initializeScene(void) {
 		return 4;
 	if (texInitializeFile(&texL, "tree.jpg", GL_LINEAR, GL_LINEAR,
 			GL_REPEAT, GL_REPEAT) != 0)
-	return 5;
+		return 5;
+	if (texInitializeFile(&texTrebuchet, "lumber.jpg", GL_LINEAR, GL_LINEAR,
+			GL_REPEAT, GL_REPEAT) != 0)
+		return 6;
+
+
+	meshMesh mesh, meshLand;
 	GLuint attrDims[3] = {3, 2, 3};
+	int vaoNums = 2;
+
+
+	// ======================= start trebuchet construction =======================
+	if (meshInitializeBox(&mesh, -10.0, 10.0, -10.0, 10.0, -2.0, 2.0) != 0)
+		return 999;
+	meshGLInitialize(&mesh, &mesh, 3, attrDims, vaoNums);
+	meshGLVAOInitialize(&mesh, 0, attrLocs);
+	meshGLVAOInitialize(&meshGLTrebuchet, 1, sdwProg.attrLocs);
+	meshGLODEInitialize(&meshGLODETrebuchet, &meshGLTrebuchet, &mesh, space);
+	meshDestroy(&mesh);
+	// ======================= end trebuchet construction =========================
+
+
     double zs[12][12] = {
 		{5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 20.0},
 		{5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 20.0, 25.0},
@@ -165,7 +200,7 @@ int initializeScene(void) {
 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}};
-	meshMesh mesh, meshLand;
+	
 	if (meshInitializeLandscape(&meshLand, 12, 12, 5.0, (double *)zs) != 0)
 		return 6;
 	if (meshInitializeDissectedLandscape(&mesh, &meshLand, M_PI / 3.0, 1) != 0)
@@ -174,7 +209,11 @@ int initializeScene(void) {
 
 
 	// ======================= meshGLODE usage here ===============================
-	int vaoNums = 2;
+	
+
+
+
+
 
 	meshGLInitialize(&meshGLH, &mesh, 3, attrDims, vaoNums);
 	meshGLVAOInitialize(&meshGLH, 0, attrLocs);
@@ -230,7 +269,9 @@ int initializeScene(void) {
 	meshGLODEInitialize(&meshGLODEL, &meshGLL, &mesh, space);
 	meshDestroy(&mesh);
 	//pass meshGLODE to a sceneNode
-	if (sceneInitialize(&nodeW, 3, 1, &meshGLODEW, NULL, NULL, world) != 0)
+	if (sceneInitialize(&nodeTrebuchet, 3, 1, &meshGLODETrebuchet, NULL, NULL, world) != 0)
+		return 14;
+	if (sceneInitialize(&nodeW, 3, 1, &meshGLODEW, NULL, &nodeTrebuchet, world) != 0)
 		return 14;
 	if (sceneInitialize(&nodeL, 3, 1, &meshGLODEL, NULL, NULL, world) != 0)
 		return 16;
@@ -240,6 +281,7 @@ int initializeScene(void) {
 		return 13;
 	if (sceneInitialize(&nodeH, 3, 1, &meshGLODEH, &nodeV, NULL, world) != 0)
 		return 12;
+	
 	//meshGLODE end usage=============
 	dReal x,y,z;
 
@@ -267,6 +309,8 @@ int initializeScene(void) {
 	vecSet(3, unif, 1.0, 1.0, 1.0);
 	sceneSetUniform(&nodeW, unif);
 	texTexture *tex;
+	tex = &texTrebuchet;
+	sceneSetTexture(&nodeTrebuchet, &tex);
 	tex = &texH;
 	sceneSetTexture(&nodeH, &tex);
 	tex = &texV;
@@ -508,12 +552,13 @@ void render(void) {
 	GLuint unifDims[1] = {3};
 	sceneRender(&nodeH, identity, modelingLoc, 1, unifDims, unifLocs, 0,
 		textureLocs);
+
 	// printf("Render: sceneRender on scene finishes\n");
 	/* For each shadow-casting light, turn it off when finished rendering. */
 	shadowUnrender(GL_TEXTURE7);
 
 	//ODE simulation step
-	dSpaceCollide(space, 0, &nearCallback);
+	// dSpaceCollide(space, 0, &nearCallback);
 	
 	dWorldStep(world, 0.01);
 
