@@ -164,13 +164,78 @@ int initializeScene(void) {
 
 
 	// ======================= start trebuchet construction =======================
-	if (meshInitializeBox(&mesh, -10.0, 10.0, -10.0, 10.0, -2.0, 2.0) != 0)
+	// crossbar: the thing that holds the throwing arm
+	if (meshInitializeBox(&mesh, -1.0, 1.0, -0.25, 0.25, -0.25, 0.25) != 0)
 		return 999;
-	meshGLInitialize(&mesh, &mesh, 3, attrDims, vaoNums);
-	meshGLVAOInitialize(&mesh, 0, attrLocs);
-	meshGLVAOInitialize(&meshGLTrebuchet, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&meshGLODETrebuchet, &meshGLTrebuchet, &mesh, space);
+	meshGLInitialize(&cross_GL, &mesh, 3, attrDims, vaoNums);
+	meshGLVAOInitialize(&cross_GL, 0, attrLocs);
+	meshGLVAOInitialize(&cross_GL, 1, sdwProg.attrLocs);
+	meshGLODEInitialize(&cross_GLODE, &cross_GL, &mesh, space);
 	meshDestroy(&mesh);
+
+	// supports: the four diagonally oriented beams that connect crossbar to the bases
+	if (meshInitializeBox(&mesh, -5.0, 5.0, -0.25, 0.25, -0.25, 0.25) != 0)
+		return 999;
+	meshGLInitialize(&supportFL_GL, &mesh, 3, attrDims, vaoNums);
+	meshGLVAOInitialize(&supportFL_GL, 0, attrLocs);
+	meshGLVAOInitialize(&supportFL_GL, 1, sdwProg.attrLocs);
+	meshGLODEInitialize(&supportFL_GLODE, &cross_GL, &mesh, space);
+	meshDestroy(&mesh);
+	if (meshInitializeBox(&mesh, -5.0, 5.0, -0.25, 0.25, -0.25, 0.25) != 0)
+		return 999;
+	meshGLInitialize(&supportFR_GL, &mesh, 3, attrDims, vaoNums);
+	meshGLVAOInitialize(&supportFR_GL, 0, attrLocs);
+	meshGLVAOInitialize(&supportFR_GL, 1, sdwProg.attrLocs);
+	meshGLODEInitialize(&supportFR_GLODE, &cross_GL, &mesh, space);
+	meshDestroy(&mesh);
+	if (meshInitializeBox(&mesh, -5.0, 5.0, -0.25, 0.25, -0.25, 0.25) != 0)
+		return 999;
+	meshGLInitialize(&supportBL_GL, &mesh, 3, attrDims, vaoNums);
+	meshGLVAOInitialize(&supportBL_GL, 0, attrLocs);
+	meshGLVAOInitialize(&supportBL_GL, 1, sdwProg.attrLocs);
+	meshGLODEInitialize(&supportBL_GLODE, &cross_GL, &mesh, space);
+	meshDestroy(&mesh);
+	if (meshInitializeBox(&mesh, -5.0, 5.0, -0.25, 0.25, -0.25, 0.25) != 0)
+		return 999;
+	meshGLInitialize(&supportBR_GL, &mesh, 3, attrDims, vaoNums);
+	meshGLVAOInitialize(&supportBR_GL, 0, attrLocs);
+	meshGLVAOInitialize(&supportBR_GL, 1, sdwProg.attrLocs);
+	meshGLODEInitialize(&supportBR_GLODE, &cross_GL, &mesh, space);
+	meshDestroy(&mesh);
+
+	// bases: the beams that each connect the front and back supports for each side
+	if (meshInitializeBox(&mesh, -7.1, 7.1, -0.25, 0.25, -0.25, 0.25) != 0)
+		return 999;
+	meshGLInitialize(&baseL_GL, &mesh, 3, attrDims, vaoNums);
+	meshGLVAOInitialize(&baseL_GL, 0, attrLocs);
+	meshGLVAOInitialize(&baseL_GL, 1, sdwProg.attrLocs);
+	meshGLODEInitialize(&baseL_GLODE, &cross_GL, &mesh, space);
+	meshDestroy(&mesh);
+	if (meshInitializeBox(&mesh, -7.1, 7.1, -0.25, 0.25, -0.25, 0.25) != 0)
+		return 999;
+	meshGLInitialize(&baseR_GL, &mesh, 3, attrDims, vaoNums);
+	meshGLVAOInitialize(&baseR_GL, 0, attrLocs);
+	meshGLVAOInitialize(&baseR_GL, 1, sdwProg.attrLocs);
+	meshGLODEInitialize(&baseR_GLODE, &cross_GL, &mesh, space);
+	meshDestroy(&mesh);
+
+	// arm: the beam that moves to throw stuff // length 20 for now
+	if (meshInitializeBox(&mesh, -10, 10, -0.25, 0.25, -0.25, 0.25) != 0)
+		return 999;
+	meshGLInitialize(&arm_GL, &mesh, 3, attrDims, vaoNums);
+	meshGLVAOInitialize(&arm_GL, 0, attrLocs);
+	meshGLVAOInitialize(&arm_GL, 1, sdwProg.attrLocs);
+	meshGLODEInitialize(&arm_GLODE, &cross_GL, &mesh, space);
+	meshDestroy(&mesh);	
+
+	// counterweight: either fixed or swinging from the arm
+	if (meshInitializeBox(&mesh, -10, 10, -0.25, 0.25, -0.25, 0.25) != 0)
+		return 999;
+	meshGLInitialize(&counterweight_GL, &mesh, 3, attrDims, vaoNums);
+	meshGLVAOInitialize(&counterweight_GL, 0, attrLocs);
+	meshGLVAOInitialize(&counterweight_GL, 1, sdwProg.attrLocs);
+	meshGLODEInitialize(&counterweight_GLODE, &cross_GL, &mesh, space);
+	meshDestroy(&mesh);		
 	// ======================= end trebuchet construction =========================
 
 
@@ -269,9 +334,9 @@ int initializeScene(void) {
 	meshGLODEInitialize(&meshGLODEL, &meshGLL, &mesh, space);
 	meshDestroy(&mesh);
 	//pass meshGLODE to a sceneNode
-	if (sceneInitialize(&nodeTrebuchet, 3, 1, &meshGLODETrebuchet, NULL, NULL, world) != 0)
+	if (sceneInitialize(&cross_node, 3, 1, &cross_GLODE, NULL, NULL, world) != 0)
 		return 14;
-	if (sceneInitialize(&nodeW, 3, 1, &meshGLODEW, NULL, &nodeTrebuchet, world) != 0)
+	if (sceneInitialize(&nodeW, 3, 1, &meshGLODEW, NULL, &cross_node, world) != 0)
 		return 14;
 	if (sceneInitialize(&nodeL, 3, 1, &meshGLODEL, NULL, NULL, world) != 0)
 		return 16;
@@ -310,7 +375,7 @@ int initializeScene(void) {
 	sceneSetUniform(&nodeW, unif);
 	texTexture *tex;
 	tex = &texTrebuchet;
-	sceneSetTexture(&nodeTrebuchet, &tex);
+	sceneSetTexture(&cross_node, &tex);
 	tex = &texH;
 	sceneSetTexture(&nodeH, &tex);
 	tex = &texV;
