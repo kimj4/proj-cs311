@@ -229,7 +229,7 @@ int initializeScene(void) {
 	meshGLVAOInitialize(&meshGLL, 1, sdwProg.attrLocs);
 	meshGLODEInitialize(&meshGLODEL, &meshGLL, &mesh, space);
 	meshDestroy(&mesh);
-//pass meshGLODE to a sceneNode
+	//pass meshGLODE to a sceneNode
 	if (sceneInitialize(&nodeW, 3, 1, &meshGLODEW, NULL, NULL, world) != 0)
 		return 14;
 	if (sceneInitialize(&nodeL, 3, 1, &meshGLODEL, NULL, NULL, world) != 0)
@@ -240,7 +240,7 @@ int initializeScene(void) {
 		return 13;
 	if (sceneInitialize(&nodeH, 3, 1, &meshGLODEH, &nodeV, NULL, world) != 0)
 		return 12;
-//meshGLODE end usage=============
+	//meshGLODE end usage=============
 	dReal x,y,z;
 
 
@@ -404,6 +404,7 @@ int initializeShaderProgram(void) {
 //Collision Detection from the manual
 //May need dGeomID node.meshGLODE.geom
 static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
+	// printf("top\n");
     if (dGeomIsSpace (o1) || dGeomIsSpace (o2)) {
         // colliding a space with something :
 		 dSpaceCollide2 (o1, o2, data,&nearCallback);
@@ -416,30 +417,43 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
 		}
 
 	else {
+		// JK: i think these two work
+		// JK: runtime error is definitely somewhere in this else statement
 		dBodyID b1 = dGeomGetBody(o1);
 		dBodyID b2 = dGeomGetBody(o2);
 
-		if (b1 && b2 && dAreConnected(b1, b2))
+		if (b1 && b2 && dAreConnected(b1, b2)) {
+			printf("returns\n");
 			return;
+		}
+
 		dContact contact[max_contacts];
+
 		// colliding two non-space geoms, so generate contact points between o1 and o2
-		int num_contact = dCollide (o1, o2, max_contacts, &contact[0].geom, sizeof(dContact));
+		int num_contact = dCollide(o1, o2, max_contacts, &contact[0].geom, sizeof(dContact));
+		printf("num_contact: %i\n", num_contact);
 		int i;
 
+
+		// this if statement causes the failure
 		//Added friction to ground
-			if (o1 == ground || o2 == ground){
-			for(i = 0; i<num_contact; i++)
-			contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactApprox1;
-			contact[i].surface.mu = 0.5;
-			contact[i].surface.soft_cfm = 1e-8;
-			contact[i].surface.soft_erp = 1.0;
-			dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
-			dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
+		if (o1 == ground || o2 == ground) {
+			for(i = 0; i < num_contact; i++) {
+				printf("a\n");
+				contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactApprox1;
+				contact[i].surface.mu = 0.5;
+				contact[i].surface.soft_cfm = 1e-8;
+				contact[i].surface.soft_erp = 1.0;
+				// dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
+
+				// dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
+				printf("b\n");
 			}
+		}
 
-
+		// This if statement is not the cause of the crash
 		if (num_contact > 0){
-			for (i=0; i<num_contact; i++){
+			for (i=0; i<num_contact; i++) {
 				contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
 				contact[i].surface.mu = dInfinity;
 				contact[i].surface.soft_cfm = 1e-8;
@@ -453,11 +467,13 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
 
 
 	}
+	// printf("bottom\n");
 }
 
 
 
 void render(void) {
+
 
 	GLdouble identity[4][4];
 	mat44Identity(identity);
@@ -483,6 +499,7 @@ void render(void) {
 	GLfloat vec[3];
 	vecOpenGL(3, cam.translation, vec);
 	glUniform3fv(camPosLoc, 1, vec);
+
 	/* For each light, we have to connect it to the shader program, as always.
 	For each shadow-casting light, we must also connect its shadow map. */
 	lightRender(&light, lightPosLoc, lightColLoc, lightAttLoc, lightDirLoc,
@@ -495,26 +512,29 @@ void render(void) {
 	/* For each shadow-casting light, turn it off when finished rendering. */
 	shadowUnrender(GL_TEXTURE7);
 
-//ODE simulation step
+	//ODE simulation step
 	dSpaceCollide(space, 0, &nearCallback);
+	
 	dWorldStep(world, 0.01);
+
 	dJointGroupEmpty(contactgroup);
 
+
 	const dReal *pos1 = dBodyGetPosition(nodeL.body);
-	const dReal *rot1 = dBodyGetRotation(nodeL.body);
+	// const dReal *rot1 = dBodyGetRotation(nodeL.body);
 	nodeL.translation[2] = pos1[2];
 	//Derefernce rot1?
 	// mat33Copy(rot1, nodeL.rotation);
 	// nodeL.rotation = rot1;
-	nodeL.rotation[0][0] = rot1[0];
-	nodeL.rotation[0][1] = rot1[1];
-	nodeL.rotation[0][2] = rot1[2];
-	nodeL.rotation[1][0] = rot1[3];
-	nodeL.rotation[1][1] = rot1[4];
-	nodeL.rotation[1][2] = rot1[5];
-	nodeL.rotation[2][0] = rot1[6];
-	nodeL.rotation[2][1] = rot1[7];
-	nodeL.rotation[2][2] = rot1[8];
+	// nodeL.rotation[0][0] = rot1[0];
+	// nodeL.rotation[0][1] = rot1[1];
+	// nodeL.rotation[0][2] = rot1[2];
+	// nodeL.rotation[1][0] = rot1[3];
+	// nodeL.rotation[1][1] = rot1[4];
+	// nodeL.rotation[1][2] = rot1[5];
+	// nodeL.rotation[2][0] = rot1[6];
+	// nodeL.rotation[2][1] = rot1[7];
+	// nodeL.rotation[2][2] = rot1[8];
 
 	// const dReal *a = dBodyGetPosition(nodeL.body);
 	// const dReal *b = dGeomGetPosition(nodeL.meshGLODE->geom);
