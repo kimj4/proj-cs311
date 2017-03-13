@@ -205,6 +205,15 @@ void mat33BasisRotation(GLdouble u[3], GLdouble v[3], GLdouble a[3], GLdouble b[
 			mat333Multiply(S, RTransposed, rot);
 }
 
+void mat33Copy(GLdouble start[3][3], GLdouble end[3][3]) {
+	int i, j;
+	for (i = 0; i < 3; i ++) {
+		for (j = 0; j < 3; j ++) {
+			end[i][j] = start[i][j];
+		}
+	}
+}
+
 void mat44Copy(GLdouble start[4][4], GLdouble end[4][4]) {
 	int i, j;
 	for (i = 0; i < 4; i ++) {
