@@ -57,6 +57,8 @@ int meshGLODEInitialize(meshGLODE *meshGLODE, meshGLMesh *meshGL, meshMesh *mesh
 								meshGLODE->meshGL->vertNum, meshGLODE->tri,
 		 						3 * meshGLODE->meshGL->triNum, 3 * sizeof(unsigned int));
 	meshGLODE->geom = dCreateTriMesh(space, meshData, 0, 0, 0); 
+
+	
 	return 0;
 }
 

@@ -39,8 +39,7 @@ static dReal length = 1.0;
 #define max_contacts 10
 
 
-dContactGeom contact_array[100];
-int skip = sizeof(dContactGeom);
+
 
 // ==== scene globals ====
 camCamera cam;
@@ -514,16 +513,16 @@ int initializeShaderProgram(void) {
 //May need dGeomID node.meshGLODE.geom
 static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
 	// printf("top\n");
-    if (dGeomIsSpace (o1) || dGeomIsSpace (o2)) {
-        // colliding a space with something :
-		 dSpaceCollide2 (o1, o2, data,&nearCallback);
+    // if (dGeomIsSpace (o1) || dGeomIsSpace (o2)) {
+    //     // colliding a space with something :
+	// 	 dSpaceCollide2 (o1, o2, data,&nearCallback);
 
-        // collide all geoms internal to the space(s)
-    	if (dGeomIsSpace (o1))
-            dSpaceCollide ((dSpaceID)o1, data, &nearCallback);
-    	if (dGeomIsSpace (o2))
-            dSpaceCollide ((dSpaceID)o2, data, &nearCallback);
-		}
+    //     // collide all geoms internal to the space(s)
+    // 	if (dGeomIsSpace (o1))
+    //         dSpaceCollide ((dSpaceID)o1, data, &nearCallback);
+    // 	if (dGeomIsSpace (o2))
+    //         dSpaceCollide ((dSpaceID)o2, data, &nearCallback);
+	// 	}
 
 	else {
 		// JK: i think these two work

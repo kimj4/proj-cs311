@@ -36,6 +36,13 @@ int sceneInitialize(sceneNode *node, GLuint unifDim, GLuint texNum,
 
 	node->body = dBodyCreate(world);
 	dGeomSetBody(node->meshGLODE->geom, node->body);
+	
+	//Setting Mass
+	dReal density = 5.0;
+	dMass m;
+	dMassSetZero(m);
+	dMassSetTrimesh(&m, density, node->meshGLODE->geom);
+	dBodySetMass(node->body, m);
 	return 0;
 }
 
