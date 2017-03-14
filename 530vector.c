@@ -20,8 +20,7 @@ void vecPrint(int dim, GLdouble v[]) {
 }
 
 /* Copies the dim-dimensional vector v to the dim-dimensional vector copy. */
-//Changed GLdouble to const dReal
-void vecCopy(int dim, const dReal v[], GLdouble copy[]) {
+void vecCopy(int dim, GLdouble v[], GLdouble copy[]) {
   int i;
   for (i = 0; i < dim; i++) {
     copy[i] = v[i];

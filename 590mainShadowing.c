@@ -36,17 +36,17 @@ static dReal radius = 0.25;
 static dReal length = 1.0;
 static dReal density = 5.0;
 
-#define max_contacts 3
+#define max_contacts 5
 
 
-
+// dContact contact[max_contacts];
 
 // ==== scene globals ====
 camCamera cam;
-texTexture texH, texV, texW, texT, texL, texTrebuchet;
-meshGLODE meshGLODEH, meshGLODEV, meshGLODEW, meshGLODET, meshGLODEL, meshGLODETrebuchet;
-meshGLMesh meshGLH, meshGLV, meshGLW, meshGLT, meshGLL, meshGLTrebuchet;
-sceneNode nodeH, nodeV, nodeW, nodeT, nodeL, nodeTrebuchet;
+texTexture texH, texV, texTrebuchet;
+meshGLODE meshGLODEL;
+meshGLMesh meshGLL;
+sceneNode nodeL;
 shadowProgram sdwProg;
 
 // trebuchet 
@@ -63,6 +63,10 @@ sceneNode wheelFL_node, wheelFR_node, wheelBL_node, wheelBR_node,
 		  supportFL_node, supportFR_node, supportBL_node, supportBR_node,
 		  cross_node, arm_node, counterweight_node, bucket_node;
 
+// ground
+meshGLODE ground_GLODE;
+meshGLMesh ground_GL;
+sceneNode ground_node;
 
 lightLight light;
 shadowMap sdwMap;
@@ -104,7 +108,7 @@ void handleKey(GLFWwindow *window, int key, int scancode, int action, int mods) 
 		else if (key == GLFW_KEY_U)
 			camAddDistance(&cam, -0.5);
 		else if (key == GLFW_KEY_J)
-			camAddDistance(&cam, 0.5);
+			camAddDistance(&cam, 5.0);
 		else if (key == GLFW_KEY_Y) {
 			GLdouble vec[3];
 			vecCopy(3, light.translation, vec);
@@ -143,188 +147,196 @@ int initializeScene(void) {
 			GL_REPEAT, GL_REPEAT) != 0)
 		return 2;
 
-	if (texInitializeFile(&texW, "water.jpg", GL_LINEAR, GL_LINEAR,
-			GL_REPEAT, GL_REPEAT) != 0)
-		return 3;
-	if (texInitializeFile(&texT, "trunk.jpg", GL_LINEAR, GL_LINEAR,
-			GL_REPEAT, GL_REPEAT) != 0)
-		return 4;
-	if (texInitializeFile(&texL, "tree.jpg", GL_LINEAR, GL_LINEAR,
-			GL_REPEAT, GL_REPEAT) != 0)
-		return 5;
-	if (texInitializeFile(&texTrebuchet, "lumber.jpg", GL_LINEAR, GL_LINEAR,
-			GL_REPEAT, GL_REPEAT) != 0)
-		return 6;
+// 	if (texInitializeFile(&texW, "water.jpg", GL_LINEAR, GL_LINEAR,
+// 			GL_REPEAT, GL_REPEAT) != 0)
+// 		return 3;
+// 	if (texInitializeFile(&texT, "trunk.jpg", GL_LINEAR, GL_LINEAR,
+// 			GL_REPEAT, GL_REPEAT) != 0)
+// 		return 4;
+// 	if (texInitializeFile(&texL, "tree.jpg", GL_LINEAR, GL_LINEAR,
+// 			GL_REPEAT, GL_REPEAT) != 0)
+// 		return 5;
+// 	if (texInitializeFile(&texTrebuchet, "lumber.jpg", GL_LINEAR, GL_LINEAR,
+// 			GL_REPEAT, GL_REPEAT) != 0)
+// 		return 6;
 
 
-	meshMesh mesh, meshLand;
+	meshMesh mesh;
+// 	meshMesh mesh, meshLand;
 	GLuint attrDims[3] = {3, 2, 3};
 	int vaoNums = 2;
 
 
-	// ======================= start trebuchet construction =======================
-	// crossbar: the thing that holds the throwing arm
-	if (meshInitializeBox(&mesh, -1.0, 1.0, -0.25, 0.25, -0.25, 0.25) != 0)
-		return 999;
-	meshGLInitialize(&cross_GL, &mesh, 3, attrDims, vaoNums);
-	meshGLVAOInitialize(&cross_GL, 0, attrLocs);
-	meshGLVAOInitialize(&cross_GL, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&cross_GLODE, &cross_GL, &mesh, space);
-	meshDestroy(&mesh);
+// 	// ======================= start trebuchet construction =======================
+// 	// crossbar: the thing that holds the throwing arm
+// 	if (meshInitializeBox(&mesh, -1.0, 1.0, -0.25, 0.25, -0.25, 0.25) != 0)
+// 		return 999;
+// 	meshGLInitialize(&cross_GL, &mesh, 3, attrDims, vaoNums);
+// 	meshGLVAOInitialize(&cross_GL, 0, attrLocs);
+// 	meshGLVAOInitialize(&cross_GL, 1, sdwProg.attrLocs);
+// 	meshGLODEInitialize(&cross_GLODE, &cross_GL, &mesh, space);
+// 	meshDestroy(&mesh);
 
-	// supports: the four diagonally oriented beams that connect crossbar to the bases
-	if (meshInitializeBox(&mesh, -5.0, 5.0, -0.25, 0.25, -0.25, 0.25) != 0)
-		return 999;
-	meshGLInitialize(&supportFL_GL, &mesh, 3, attrDims, vaoNums);
-	meshGLVAOInitialize(&supportFL_GL, 0, attrLocs);
-	meshGLVAOInitialize(&supportFL_GL, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&supportFL_GLODE, &cross_GL, &mesh, space);
-	meshDestroy(&mesh);
-	if (meshInitializeBox(&mesh, -5.0, 5.0, -0.25, 0.25, -0.25, 0.25) != 0)
-		return 999;
-	meshGLInitialize(&supportFR_GL, &mesh, 3, attrDims, vaoNums);
-	meshGLVAOInitialize(&supportFR_GL, 0, attrLocs);
-	meshGLVAOInitialize(&supportFR_GL, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&supportFR_GLODE, &cross_GL, &mesh, space);
-	meshDestroy(&mesh);
-	if (meshInitializeBox(&mesh, -5.0, 5.0, -0.25, 0.25, -0.25, 0.25) != 0)
-		return 999;
-	meshGLInitialize(&supportBL_GL, &mesh, 3, attrDims, vaoNums);
-	meshGLVAOInitialize(&supportBL_GL, 0, attrLocs);
-	meshGLVAOInitialize(&supportBL_GL, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&supportBL_GLODE, &cross_GL, &mesh, space);
-	meshDestroy(&mesh);
-	if (meshInitializeBox(&mesh, -5.0, 5.0, -0.25, 0.25, -0.25, 0.25) != 0)
-		return 999;
-	meshGLInitialize(&supportBR_GL, &mesh, 3, attrDims, vaoNums);
-	meshGLVAOInitialize(&supportBR_GL, 0, attrLocs);
-	meshGLVAOInitialize(&supportBR_GL, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&supportBR_GLODE, &cross_GL, &mesh, space);
-	meshDestroy(&mesh);
+// 	// supports: the four diagonally oriented beams that connect crossbar to the bases
+// 	if (meshInitializeBox(&mesh, -5.0, 5.0, -0.25, 0.25, -0.25, 0.25) != 0)
+// 		return 999;
+// 	meshGLInitialize(&supportFL_GL, &mesh, 3, attrDims, vaoNums);
+// 	meshGLVAOInitialize(&supportFL_GL, 0, attrLocs);
+// 	meshGLVAOInitialize(&supportFL_GL, 1, sdwProg.attrLocs);
+// 	meshGLODEInitialize(&supportFL_GLODE, &cross_GL, &mesh, space);
+// 	meshDestroy(&mesh);
+// 	if (meshInitializeBox(&mesh, -5.0, 5.0, -0.25, 0.25, -0.25, 0.25) != 0)
+// 		return 999;
+// 	meshGLInitialize(&supportFR_GL, &mesh, 3, attrDims, vaoNums);
+// 	meshGLVAOInitialize(&supportFR_GL, 0, attrLocs);
+// 	meshGLVAOInitialize(&supportFR_GL, 1, sdwProg.attrLocs);
+// 	meshGLODEInitialize(&supportFR_GLODE, &cross_GL, &mesh, space);
+// 	meshDestroy(&mesh);
+// 	if (meshInitializeBox(&mesh, -5.0, 5.0, -0.25, 0.25, -0.25, 0.25) != 0)
+// 		return 999;
+// 	meshGLInitialize(&supportBL_GL, &mesh, 3, attrDims, vaoNums);
+// 	meshGLVAOInitialize(&supportBL_GL, 0, attrLocs);
+// 	meshGLVAOInitialize(&supportBL_GL, 1, sdwProg.attrLocs);
+// 	meshGLODEInitialize(&supportBL_GLODE, &cross_GL, &mesh, space);
+// 	meshDestroy(&mesh);
+// 	if (meshInitializeBox(&mesh, -5.0, 5.0, -0.25, 0.25, -0.25, 0.25) != 0)
+// 		return 999;
+// 	meshGLInitialize(&supportBR_GL, &mesh, 3, attrDims, vaoNums);
+// 	meshGLVAOInitialize(&supportBR_GL, 0, attrLocs);
+// 	meshGLVAOInitialize(&supportBR_GL, 1, sdwProg.attrLocs);
+// 	meshGLODEInitialize(&supportBR_GLODE, &cross_GL, &mesh, space);
+// 	meshDestroy(&mesh);
 
-	// bases: the beams that each connect the front and back supports for each side
-	if (meshInitializeBox(&mesh, -7.1, 7.1, -0.25, 0.25, -0.25, 0.25) != 0)
-		return 999;
-	meshGLInitialize(&baseL_GL, &mesh, 3, attrDims, vaoNums);
-	meshGLVAOInitialize(&baseL_GL, 0, attrLocs);
-	meshGLVAOInitialize(&baseL_GL, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&baseL_GLODE, &cross_GL, &mesh, space);
-	meshDestroy(&mesh);
-	if (meshInitializeBox(&mesh, -7.1, 7.1, -0.25, 0.25, -0.25, 0.25) != 0)
-		return 999;
-	meshGLInitialize(&baseR_GL, &mesh, 3, attrDims, vaoNums);
-	meshGLVAOInitialize(&baseR_GL, 0, attrLocs);
-	meshGLVAOInitialize(&baseR_GL, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&baseR_GLODE, &cross_GL, &mesh, space);
-	meshDestroy(&mesh);
+// 	// bases: the beams that each connect the front and back supports for each side
+// 	if (meshInitializeBox(&mesh, -7.1, 7.1, -0.25, 0.25, -0.25, 0.25) != 0)
+// 		return 999;
+// 	meshGLInitialize(&baseL_GL, &mesh, 3, attrDims, vaoNums);
+// 	meshGLVAOInitialize(&baseL_GL, 0, attrLocs);
+// 	meshGLVAOInitialize(&baseL_GL, 1, sdwProg.attrLocs);
+// 	meshGLODEInitialize(&baseL_GLODE, &cross_GL, &mesh, space);
+// 	meshDestroy(&mesh);
+// 	if (meshInitializeBox(&mesh, -7.1, 7.1, -0.25, 0.25, -0.25, 0.25) != 0)
+// 		return 999;
+// 	meshGLInitialize(&baseR_GL, &mesh, 3, attrDims, vaoNums);
+// 	meshGLVAOInitialize(&baseR_GL, 0, attrLocs);
+// 	meshGLVAOInitialize(&baseR_GL, 1, sdwProg.attrLocs);
+// 	meshGLODEInitialize(&baseR_GLODE, &cross_GL, &mesh, space);
+// 	meshDestroy(&mesh);
 
-	// arm: the beam that moves to throw stuff // length 20 for now
-	if (meshInitializeBox(&mesh, -10, 10, -0.25, 0.25, -0.25, 0.25) != 0)
-		return 999;
-	meshGLInitialize(&arm_GL, &mesh, 3, attrDims, vaoNums);
-	meshGLVAOInitialize(&arm_GL, 0, attrLocs);
-	meshGLVAOInitialize(&arm_GL, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&arm_GLODE, &cross_GL, &mesh, space);
-	meshDestroy(&mesh);	
+// 	// arm: the beam that moves to throw stuff // length 20 for now
+// 	if (meshInitializeBox(&mesh, -10, 10, -0.25, 0.25, -0.25, 0.25) != 0)
+// 		return 999;
+// 	meshGLInitialize(&arm_GL, &mesh, 3, attrDims, vaoNums);
+// 	meshGLVAOInitialize(&arm_GL, 0, attrLocs);
+// 	meshGLVAOInitialize(&arm_GL, 1, sdwProg.attrLocs);
+// 	meshGLODEInitialize(&arm_GLODE, &cross_GL, &mesh, space);
+// 	meshDestroy(&mesh);	
 
-	// counterweight: either fixed or swinging from the arm
-	if (meshInitializeBox(&mesh, -10, 10, -0.25, 0.25, -0.25, 0.25) != 0)
-		return 999;
-	meshGLInitialize(&counterweight_GL, &mesh, 3, attrDims, vaoNums);
-	meshGLVAOInitialize(&counterweight_GL, 0, attrLocs);
-	meshGLVAOInitialize(&counterweight_GL, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&counterweight_GLODE, &cross_GL, &mesh, space);
-	meshDestroy(&mesh);		
-	// ======================= end trebuchet construction =========================
+// 	// counterweight: either fixed or swinging from the arm
+// 	if (meshInitializeBox(&mesh, -10, 10, -0.25, 0.25, -0.25, 0.25) != 0)
+// 		return 999;
+// 	meshGLInitialize(&counterweight_GL, &mesh, 3, attrDims, vaoNums);
+// 	meshGLVAOInitialize(&counterweight_GL, 0, attrLocs);
+// 	meshGLVAOInitialize(&counterweight_GL, 1, sdwProg.attrLocs);
+// 	meshGLODEInitialize(&counterweight_GLODE, &cross_GL, &mesh, space);
+// 	meshDestroy(&mesh);		
+// 	// ======================= end trebuchet construction =========================
 
 
-    double zs[12][12] = {
-		{5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 20.0},
-		{5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 20.0, 25.0},
-		{5.0, 5.0, 10.0, 12.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 20.0, 25.0},
-		{5.0, 5.0, 10.0, 10.0, 5.0, 5.0, 5.0, 5.0, 5.0, 20.0, 25.0, 27.0},
-		{0.0, 0.0, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 20.0, 20.0, 25.0},
-		{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 20.0, 25.0},
-		{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-		{0.0, 0.0, 0.0, 0.0, 0.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-		{0.0, 0.0, 0.0, 0.0, 0.0, 5.0, 7.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-		{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 20.0, 20.0},
-		{5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 20.0, 20.0, 20.0},
-		{10.0, 10.0, 5.0, 5.0, 0.0, 0.0, 0.0, 5.0, 10.0, 15.0, 20.0, 25.0}};
-	double ws[12][12] = {
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}};
+//     double zs[12][12] = {
+// 		{5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 20.0},
+// 		{5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 20.0, 25.0},
+// 		{5.0, 5.0, 10.0, 12.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 20.0, 25.0},
+// 		{5.0, 5.0, 10.0, 10.0, 5.0, 5.0, 5.0, 5.0, 5.0, 20.0, 25.0, 27.0},
+// 		{0.0, 0.0, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 20.0, 20.0, 25.0},
+// 		{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 20.0, 25.0},
+// 		{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+// 		{0.0, 0.0, 0.0, 0.0, 0.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+// 		{0.0, 0.0, 0.0, 0.0, 0.0, 5.0, 7.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+// 		{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 20.0, 20.0},
+// 		{5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 20.0, 20.0, 20.0},
+// 		{10.0, 10.0, 5.0, 5.0, 0.0, 0.0, 0.0, 5.0, 10.0, 15.0, 20.0, 25.0}};
+// 	double ws[12][12] = {
+// 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
+// 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
+// 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
+// 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
+// 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
+// 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
+// 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
+// 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
+// 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
+// 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
+// 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
+// 		{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}};
 	
-	if (meshInitializeLandscape(&meshLand, 12, 12, 5.0, (double *)zs) != 0)
-		return 6;
-	if (meshInitializeDissectedLandscape(&mesh, &meshLand, M_PI / 3.0, 1) != 0)
-		return 7;
-	/* There are now two VAOs per mesh. */
+// 	if (meshInitializeLandscape(&meshLand, 12, 12, 5.0, (double *)zs) != 0)
+// 		return 6;
+// 	if (meshInitializeDissectedLandscape(&mesh, &meshLand, M_PI / 3.0, 1) != 0)
+// 		return 7;
+// 	/* There are now two VAOs per mesh. */
 
 
-	// ======================= meshGLODE usage here ===============================
+// 	// ======================= meshGLODE usage here ===============================
 	
-
-
-
-
-
-	meshGLInitialize(&meshGLH, &mesh, 3, attrDims, vaoNums);
-	meshGLVAOInitialize(&meshGLH, 0, attrLocs);
-	meshGLVAOInitialize(&meshGLH, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&meshGLODEH, &meshGLH, &mesh, space);
-	meshDestroy(&mesh);
-
-	// === dissected landscape ===
-	if (meshInitializeDissectedLandscape(&mesh, &meshLand, M_PI / 3.0, 0) != 0)
-		return 8;
-	meshDestroy(&meshLand);
-	double *vert, normal[2];
-	for (int i = 0; i < mesh.vertNum; i += 1) {
-		vert = meshGetVertexPointer(&mesh, i);
-		normal[0] = -vert[6];
-		normal[1] = vert[5];
-		vert[3] = (vert[0] * normal[0] + vert[1] * normal[1]) / 20.0;
-		vert[4] = vert[2] / 20.0;
+	if (meshInitializeBox(&mesh, -100.0, 100.0, -100.0, 100.0, -1.0, 1.0) != 0) {
+		return 1;
 	}
-	meshGLInitialize(&meshGLV, &mesh, 3, attrDims, vaoNums);
-	meshGLVAOInitialize(&meshGLV, 0, attrLocs);
-	meshGLVAOInitialize(&meshGLV, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&meshGLODEV, &meshGLV, &mesh, space);
+	meshGLInitialize(&ground_GL, &mesh, 3, attrDims, vaoNums);
+	meshGLVAOInitialize(&ground_GL, 0, attrLocs);
+	meshGLVAOInitialize(&ground_GL, 1, sdwProg.attrLocs);
+	meshGLODEInitialize(&ground_GLODE, &ground_GL, &mesh, space);
 	meshDestroy(&mesh);
 
 
-	// === landscape ===
-	if (meshInitializeLandscape(&mesh, 12, 12, 5.0, (double *)ws) != 0)
-		return 9;
-	meshGLInitialize(&meshGLW, &mesh, 3, attrDims, vaoNums);
-
-	meshGLVAOInitialize(&meshGLW, 0, attrLocs);
-	meshGLVAOInitialize(&meshGLW, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&meshGLODEW, &meshGLW, &mesh, space);
-	meshDestroy(&mesh);
 
 
-	// === tree trunk ===
-	if (meshInitializeCapsule(&mesh, 1.0, 10.0, 1, 8) != 0)
-		return 10;
-	meshGLInitialize(&meshGLT, &mesh, 3, attrDims, vaoNums);
-	meshGLVAOInitialize(&meshGLT, 0, attrLocs);
-	meshGLVAOInitialize(&meshGLT, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&meshGLODET, &meshGLT, &mesh, space);
-	meshDestroy(&mesh);
+// 	meshGLInitialize(&meshGLH, &mesh, 3, attrDims, vaoNums);
+// 	meshGLVAOInitialize(&meshGLH, 0, attrLocs);
+// 	meshGLVAOInitialize(&meshGLH, 1, sdwProg.attrLocs);
+// 	meshGLODEInitialize(&meshGLODEH, &meshGLH, &mesh, space);
+// 	meshDestroy(&mesh);
 
-	// === tree leaves ===
+// 	// === dissected landscape ===
+// 	if (meshInitializeDissectedLandscape(&mesh, &meshLand, M_PI / 3.0, 0) != 0)
+// 		return 8;
+// 	meshDestroy(&meshLand);
+// 	double *vert, normal[2];
+// 	for (int i = 0; i < mesh.vertNum; i += 1) {
+// 		vert = meshGetVertexPointer(&mesh, i);
+// 		normal[0] = -vert[6];
+// 		normal[1] = vert[5];
+// 		vert[3] = (vert[0] * normal[0] + vert[1] * normal[1]) / 20.0;
+// 		vert[4] = vert[2] / 20.0;
+// 	}
+// 	meshGLInitialize(&meshGLV, &mesh, 3, attrDims, vaoNums);
+// 	meshGLVAOInitialize(&meshGLV, 0, attrLocs);
+// 	meshGLVAOInitialize(&meshGLV, 1, sdwProg.attrLocs);
+// 	meshGLODEInitialize(&meshGLODEV, &meshGLV, &mesh, space);
+// 	meshDestroy(&mesh);
+
+
+// 	// === landscape ===
+// 	if (meshInitializeLandscape(&mesh, 12, 12, 5.0, (double *)ws) != 0)
+// 		return 9;
+// 	meshGLInitialize(&meshGLW, &mesh, 3, attrDims, vaoNums);
+
+// 	meshGLVAOInitialize(&meshGLW, 0, attrLocs);
+// 	meshGLVAOInitialize(&meshGLW, 1, sdwProg.attrLocs);
+// 	meshGLODEInitialize(&meshGLODEW, &meshGLW, &mesh, space);
+// 	meshDestroy(&mesh);
+
+
+// 	// === tree trunk ===
+// 	if (meshInitializeCapsule(&mesh, 1.0, 10.0, 1, 8) != 0)
+// 		return 10;
+// 	meshGLInitialize(&meshGLT, &mesh, 3, attrDims, vaoNums);
+// 	meshGLVAOInitialize(&meshGLT, 0, attrLocs);
+// 	meshGLVAOInitialize(&meshGLT, 1, sdwProg.attrLocs);
+// 	meshGLODEInitialize(&meshGLODET, &meshGLT, &mesh, space);
+// 	meshDestroy(&mesh);
+
+// 	// === tree leaves ===
 	if (meshInitializeBox(&mesh, -5, 5, -5, 5, -5, 5) != 0)
 		return 11;
 	meshGLInitialize(&meshGLL, &mesh, 3, attrDims, vaoNums);
@@ -332,72 +344,82 @@ int initializeScene(void) {
 	meshGLVAOInitialize(&meshGLL, 1, sdwProg.attrLocs);
 	meshGLODEInitialize(&meshGLODEL, &meshGLL, &mesh, space);
 	meshDestroy(&mesh);
-	//pass meshGLODE to a sceneNode
-	if (sceneInitialize(&cross_node, 3, 1, &cross_GLODE, NULL, NULL, world, 1) != 0)
-		return 14;
-	if (sceneInitialize(&nodeW, 3, 1, &meshGLODEW, NULL, &cross_node, world, 1) != 0)
-		return 14;
+// 	//pass meshGLODE to a sceneNode
+// 	if (sceneInitialize(&cross_node, 3, 1, &cross_GLODE, NULL, NULL, world, 1) != 0)
+// 		return 14;
+// 	if (sceneInitialize(&nodeW, 3, 1, &meshGLODEW, NULL, &cross_node, world, 1) != 0)
+// 		return 14;
 	if (sceneInitialize(&nodeL, 3, 1, &meshGLODEL, NULL, NULL, world, 0) != 0)
 		return 16;
-	if (sceneInitialize(&nodeT, 3, 1, &meshGLODET, &nodeL, &nodeW, world, 1) != 0)
-		return 15;
-	if (sceneInitialize(&nodeV, 3, 1, &meshGLODEV, NULL, &nodeT, world, 1) != 0)
-		return 13;
-	if (sceneInitialize(&nodeH, 3, 1, &meshGLODEH, &nodeV, NULL, world, 1) != 0)
-		return 12;
+// 	if (sceneInitialize(&nodeT, 3, 1, &meshGLODET, &nodeL, &nodeW, world, 1) != 0)
+// 		return 15;
+// 	if (sceneInitialize(&nodeV, 3, 1, &meshGLODEV, NULL, &nodeT, world, 1) != 0)
+// 		return 13;
+// 	if (sceneInitialize(&nodeH, 3, 1, &meshGLODEH, &nodeV, NULL, world, 1) != 0)
+// 		return 12;
+
+	if (sceneInitialize(&ground_node, 3, 1, &ground_GLODE, NULL, &nodeL, world, 1) != 0)
+		return 2;
 	
-	//meshGLODE end usage=============
+// 	//meshGLODE end usage=============
 	dReal x,y,z;
 
 
-	GLdouble trans[3] = {40.0, 28.0, 5.0};
-	sceneSetTranslation(&nodeT, trans); // tree trunk translation
-	x = trans[0];
-	y = trans[1];
-	z = trans[2];
-	dBodySetPosition(nodeT.body, x, y, z);
+	GLdouble trans[3] = {0.0, 0.0, -2.0};
+	sceneSetTranslation(&ground_node, trans); // tree trunk translation
+	// x = 0.0;
+	// y = 0.0;
+	// z = -2.0;
+	// dBodySetPosition(ground_node.body, x, y, z);
 
 
-	vecSet(3, trans, 0.0, 0.0, 50.0);
-	sceneSetTranslation(&nodeL, trans); // tree leaves translation
-	x = trans[0];
-	y = trans[1];
-	z = trans[2];
-	dBodySetPosition (nodeL.body, x, y, z);
 
-	GLdouble unif[3] = {0.0, 0.0, 0.0};
-	sceneSetUniform(&nodeH, unif);
-	sceneSetUniform(&nodeV, unif);
-	sceneSetUniform(&nodeT, unif);
-	sceneSetUniform(&nodeL, unif);
-	vecSet(3, unif, 1.0, 1.0, 1.0);
-	sceneSetUniform(&nodeW, unif);
+// 	vecSet(3, trans, 0.0, 0.0, 15.0);
+// 	sceneSetTranslation(&nodeL, trans); // tree leaves translation
+// 	// x = (dReal)trans[0];
+// 	// y = (dReal)trans[1];
+// 	// z = (dReal)trans[2];
+	x = 0.0;
+	y = 0.0;
+	z = 100.0;
+	dBodySetPosition(nodeL.body, x, y, z);
+	dBodySetTorque(nodeL.body, 100.0, 0.0, 0.0);
+
+// 	GLdouble unif[3] = {0.0, 0.0, 0.0};
+// 	sceneSetUniform(&nodeH, unif);
+// 	sceneSetUniform(&nodeV, unif);
+// 	sceneSetUniform(&nodeT, unif);
+// 	sceneSetUniform(&nodeL, unif);
+// 	vecSet(3, unif, 1.0, 1.0, 1.0);
+// 	sceneSetUniform(&nodeW, unif);
 	texTexture *tex;
-	tex = &texTrebuchet;
-	sceneSetTexture(&cross_node, &tex);
-	tex = &texH;
-	sceneSetTexture(&nodeH, &tex);
+// 	tex = &texTrebuchet;
+// 	sceneSetTexture(&cross_node, &tex);
+// 	tex = &texH;
+// 	sceneSetTexture(&nodeH, &tex);
+// 	tex = &texV;
+// 	sceneSetTexture(&nodeV, &tex);
+// 	tex = &texW;
+// 	sceneSetTexture(&nodeW, &tex);
+// 	tex = &texT;
+// 	sceneSetTexture(&nodeT, &tex);
 	tex = &texV;
-	sceneSetTexture(&nodeV, &tex);
-	tex = &texW;
-	sceneSetTexture(&nodeW, &tex);
-	tex = &texT;
-	sceneSetTexture(&nodeT, &tex);
-	tex = &texL;
 	sceneSetTexture(&nodeL, &tex);
+	tex = &texH;
+	sceneSetTexture(&ground_node, &tex);
 	return 0;
 }
 
 void destroyScene(void) {
- 	texDestroy(&texH);
- 	texDestroy(&texV);
- 	texDestroy(&texW);
- 	texDestroy(&texT);
- 	texDestroy(&texL);
-   //implement meshGLODE destruction
- 	sceneDestroyRecursively(&nodeH);
-//    meshGLDestroy(&meshGLH);
-// 	meshGLDestroy(&meshGLV);
+//  	texDestroy(&texH);
+//  	texDestroy(&texV);
+//  	texDestroy(&texW);
+//  	texDestroy(&texT);
+//  	texDestroy(&texL);
+//    //implement meshGLODE destruction
+//  	sceneDestroyRecursively(&nodeH);
+// //    meshGLDestroy(&meshGLH);
+// // 	meshGLDestroy(&meshGLV);
 // 	meshGLDestroy(&meshGLW);
 // 	meshGLDestroy(&meshGLT);
 // 	meshGLDestroy(&meshGLL);
@@ -409,11 +431,11 @@ midway through, then does not properly deallocate all resources. But that's
 okay, because the program terminates almost immediately after this function
 returns. */
 int initializeCameraLight(void) {
-  	GLdouble vec[3] = {30.0, 30.0, 5.0};
-	camSetControls(&cam, camPERSPECTIVE, M_PI / 6.0, 10.0, 768.0, 768.0, 100.0,
+  	GLdouble vec[3] = {120.0, 120.0, 120.0};
+	camSetControls(&cam, camPERSPECTIVE, M_PI / 6.0, 10.0, 768.0, 768.0, 300.0,
 								 M_PI / 4.0, M_PI / 4.0, vec);
 	lightSetType(&light, lightSPOT);
-	vecSet(3, vec, 45.0, 30.0, 20.0);
+	vecSet(3, vec, 30.0, 30.0, 20.0);
 	lightShineFrom(&light, vec, M_PI * 3.0 / 4.0, M_PI * 3.0 / 4.0);
 	vecSet(3, vec, 1.0, 1.0, 1.0);
 	lightSetColor(&light, vec);
@@ -483,7 +505,7 @@ int initializeShaderProgram(void) {
 			float sdw = textureProj(textureSdw, fragSdw);\
 			diffInt *= sdw;\
 			specInt *= sdw;\
-			vec3 diffRefl = max(0.2, diffInt) * lightCol * diffuse;\
+			vec3 diffRefl = max(0.6, diffInt) * lightCol * diffuse;\
 			vec3 specRefl = specInt * lightCol * specular;\
 			fragColor = vec4(diffRefl + specRefl, 1.0);\
 		}";
@@ -510,6 +532,8 @@ int initializeShaderProgram(void) {
 }
 
 
+
+
 //Collision Detection from the manual
 //May need dGeomID node.meshGLODE.geom
 static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
@@ -531,18 +555,26 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
 		dBodyID b1 = dGeomGetBody(o1);
 		dBodyID b2 = dGeomGetBody(o2);
 
-		if (b1 && b2 && dAreConnected(b1, b2)) {
-			printf("returns\n");
-			return;
-		}
+		// if (b1 && b2 && dAreConnected(b1, b2)) {
+		// 	return;
+		// }
 
 		dContact contact[max_contacts];
 
 		// colliding two non-space geoms, so generate contact points between o1 and o2
 		int num_contact = dCollide(o1, o2, max_contacts, &contact[0].geom, sizeof(dContact));
-		printf("num_contact: %i\n", num_contact);
 		int i;
 
+
+
+ //    for (i=0; i<max_contacts; i++) {
+	// 	contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
+	// 	contact[i].surface.mu = dInfinity;
+	// 	contact[i].surface.soft_cfm = 1e-8;
+	// 	contact[i].surface.soft_erp = 1.0;
+	// 	contact[i].surface.bounce = 0.25;
+	// 	contact[i].surface.bounce_vel = 0.1;
+	// }
     if (num_contact > 0){
 		// this if statement causes the failure
 		//Added friction to ground
@@ -556,12 +588,10 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
 				contact[i].surface.soft_erp = 1.0;
 				 dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
 
-				 dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
-				printf("b\n");
-                
+				 dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));              
 			}
 		}
-        else{
+        else {
             for (i=0; i<num_contact; i++) {
 				contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
 				contact[i].surface.mu = dInfinity;
@@ -569,24 +599,115 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
 				contact[i].surface.soft_erp = 1.0;
 				contact[i].surface.bounce = 0.25;
 				contact[i].surface.bounce_vel = 0.1;
-                printf("c\n");
 			}
         }
-
-		
-		
         for (i=0; i<num_contact; i++) {
 				dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
 				dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
-                printf("d\n");
 			}
 		}
-
-
-	//}
-	 printf("bottom\n");
     return;
 }
+
+// //Collision Detection from the manual
+// //May need dGeomID node.meshGLODE.geom
+// static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
+// 	// printf("top\n");
+//     // if (dGeomIsSpace (o1) || dGeomIsSpace (o2)) {
+//     //     // colliding a space with something :
+// 	// 	 dSpaceCollide2 (o1, o2, data,&nearCallback);
+
+//     //     // collide all geoms internal to the space(s)
+//     // 	if (dGeomIsSpace (o1))
+//     //         dSpaceCollide ((dSpaceID)o1, data, &nearCallback);
+//     // 	if (dGeomIsSpace (o2))
+//     //         dSpaceCollide ((dSpaceID)o2, data, &nearCallback);
+// 	// 	}
+
+// 	//else {
+// 	dBodyID b1 = dGeomGetBody(o1);
+// 	dBodyID b2 = dGeomGetBody(o2);
+
+// 	// if (b1 && b2 && dAreConnected(b1, b2)) {
+// 	// 	// printf("returns\n");
+// 	// 	return;
+// 	// }
+
+// 	dContact contact[max_contacts];
+
+// 	// colliding two non-space geoms, so generate contact points between o1 and o2
+// 	int num_contact = dCollide(o1, o2, max_contacts, &contact[0].geom, sizeof(dContact));
+// 	// printf("num_contact: %i\n", num_contact);
+	
+// 	int i;
+// 	for (i = 0; i < max_contacts; i++) {
+// 		// contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
+// 		// contact[i].surface.mu = dInfinity;
+// 		// contact[i].surface.soft_cfm = 0.01;
+// 		// contact[i].surface.soft_erp = 1.0;
+// 		// contact[i].surface.bounce = 0.25;
+// 		// contact[i].surface.bounce_vel = 0.1;
+// 		contact[i].surface.mode = dContactBounce | dContactSoftCFM;
+
+//         contact[i].surface.mu = dInfinity;
+
+//         contact[i].surface.mu2 = 0;
+
+//         contact[i].surface.bounce = 0.01;
+
+//         contact[i].surface.bounce_vel = 0.1;
+
+//         contact[i].surface.soft_cfm = 0.01;
+
+
+// 	}
+
+
+
+//     if (num_contact > 0){
+//     	for (i = 0; i < num_contact; i++) {
+// 			dJointID con = dJointCreateContact(world, contactgroup, contact + i);
+// 			dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
+// 			// dJointAttach(con, b1, b2);
+//             // printf("d\n");
+// 		}
+// 		//Added friction to ground
+// 		// if (o1 == ground || o2 == ground) {
+//             //printf("aa\n");
+//             // printf("ground collision\n");
+// 			// for(i = 0; i < num_contact; i++) {
+// 			// 	//printf("a\n");
+// 			// 	contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactApprox1;
+// 			// 	contact[i].surface.mu = 0.5;
+// 			// 	contact[i].surface.soft_cfm = 1e-8;
+// 			// 	contact[i].surface.soft_erp = 1.0;
+// 			// 	 dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
+
+// 			// 	 dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
+// 			// 	// printf("b\n");
+                
+// 			// }
+// 		// }
+//         // else{
+//         	// printf("regular collision\n");
+        	
+//    //          for (i=0; i<num_contact; i++) {
+// 			// 	contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
+// 			// 	contact[i].surface.mu = dInfinity;
+// 			// 	contact[i].surface.soft_cfm = 0.01;
+// 			// 	contact[i].surface.soft_erp = 1.0;
+// 			// 	contact[i].surface.bounce = 0.25;
+// 			// 	contact[i].surface.bounce_vel = 0.1;
+//    //              // printf("c\n");
+// 			// }
+//         // } 
+// 	}
+
+
+// 	//}
+// 	 // printf("bottom\n");
+//     return;
+// }
 
 
 
@@ -602,7 +723,7 @@ void render(void) {
 	glGetIntegerv(GL_VIEWPORT, viewport);
 	GLint sdwTextureLocs[1] = {-1};
 	shadowMapRender(&sdwMap, &sdwProg, &light, -100.0, -1.0);
-	sceneRender(&nodeH, identity, sdwProg.modelingLoc, 0, NULL, NULL, 1,
+	sceneRender(&ground_node, identity, sdwProg.modelingLoc, 0, NULL, NULL, 1,
 		sdwTextureLocs);
 
 
@@ -624,30 +745,32 @@ void render(void) {
 		lightCosLoc);
 	shadowRender(&sdwMap, viewingSdwLoc, GL_TEXTURE7, 7, textureSdwLoc);
 	GLuint unifDims[1] = {3};
-	sceneRender(&nodeH, identity, modelingLoc, 1, unifDims, unifLocs, 0,
-		textureLocs);
-
-	// printf("Render: sceneRender on scene finishes\n");
-	/* For each shadow-casting light, turn it off when finished rendering. */
+	// sceneRender(&nodeH, identity, modelingLoc, 1, unifDims, unifLocs, 0,
+		// textureLocs);
+	sceneRender(&ground_node, identity, modelingLoc, 1, unifDims, unifLocs, 0, textureLocs);
 	shadowUnrender(GL_TEXTURE7);
 
 	//ODE simulation step
-	dSpaceCollide(space, 0, &nearCallback);
 	
-	dWorldStep(world, 0.05);
-
-	dJointGroupEmpty(contactgroup);
 
 
 	const dReal *pos1 = dBodyGetPosition(nodeL.body);
-//	const dReal *rot1 = dBodyGetRotation(nodeL.body);
-//    nodeL.translation[0] = pos1[0];
-//    nodeL.translation[1] = pos1[1];
-//	nodeL.translation[2] = pos1[2];
-    sceneSetTranslation(&nodeL, pos1);
+	const dReal *rot1 = dBodyGetRotation(nodeL.body);
+   	nodeL.translation[0] = pos1[0];
+   	nodeL.translation[1] = pos1[1];
+	nodeL.translation[2] = pos1[2];
     
-//    sceneSetRotation(&nodeL, rot1);
-    printf("x = %f,y = %f, z = %f\n", nodeL.translation[0],nodeL.translation[1], nodeL.translation[2]);
+//     // GLdouble posGL[3];
+//     // vecCopy(3, pos1, posGL);
+//     // sceneSetTranslation(&nodeL, posGL);
+    
+// //    sceneSetRotation(&nodeL, rot1);
+//     printf("nodeL translations:\n");
+//     printf("x = %f,y = %f, z = %f\n", nodeL.translation[0],nodeL.translation[1], nodeL.translation[2]);
+
+    printf("body translations:\n");
+    printf("x = %f,y = %f, z = %f\n", pos1[0],pos1[1], pos1[2]);
+
     //getchar();
 	//Derefernce rot1?
 	// mat33Copy(rot1, nodeL.rotation);
@@ -662,6 +785,23 @@ void render(void) {
 	// nodeL.rotation[2][1] = rot1[7];
 	// nodeL.rotation[2][2] = rot1[8];
 
+    printf("\n");
+    printf("%f   %f   %f\n", rot1[0], rot1[1], rot1[2]);
+    printf("%f   %f   %f\n", rot1[3], rot1[4], rot1[6]);
+    printf("%f   %f   %f\n", rot1[7], rot1[8], rot1[9]);
+    printf("%f   %f   %f\n", rot1[10], rot1[11], rot1[12]);
+    printf("\n");
+
+	// nodeL.rotation[0][0] = rot1[0];
+	// nodeL.rotation[1][0] = rot1[1];
+	// nodeL.rotation[2][0] = rot1[2];
+	// nodeL.rotation[0][1] = rot1[3];
+	// nodeL.rotation[1][1] = rot1[4];
+	// nodeL.rotation[2][1] = rot1[5];
+	// nodeL.rotation[0][2] = rot1[6];
+	// nodeL.rotation[1][2] = rot1[7];
+	// nodeL.rotation[2][2] = rot1[8];
+
 	// const dReal *a = dBodyGetPosition(nodeL.body);
 	//const dReal *b = dGeomGetPosition(nodeL.meshGLODE->geom);
 
@@ -671,12 +811,14 @@ void render(void) {
 
 }
 void startODE(void){
-	dInitODE();
+	dInitODE2(0);
 	world = dWorldCreate();
-	space = dHashSpaceCreate(0);
+	// space = dHashSpaceCreate(0); // come back to this later maybe
+	space = dSimpleSpaceCreate(0);
 	contactgroup = dJointGroupCreate(0);
-	dWorldSetGravity(world, 0, 0, -5.81);
-	ground = dCreatePlane(space, 0, 0, 1, 0);
+	dWorldSetGravity(world, 0, 0, -9.81);
+	ground = dCreatePlane(space, 0.0, 0.0, 1.0, 0.0);
+	
 }
 
 
@@ -688,15 +830,7 @@ int main(void) {
 //    dMassSetZero(&m);
 //    dMassSetBox(&m, density, 5, 5, 5);
 //    dBodySetMass(nodeL.body, &m);
-    
-    //kinematics
-    //Getting a strange "Bad arguments in dBodySetKinematic()" error
-//    dBodyID bod;
-//    bod = nodeT.body;
-//    dBodySetKinematic(nodeT.body);
-//    dBodySetKinematic(nodeH.body);
-//    dBodySetKinematic(nodeV.body);
-//    dBodySetKinematic(nodeW.body);
+   
     
 	double oldTime;
 	double newTime = getTime();
@@ -742,11 +876,31 @@ int main(void) {
 		return 5;
 
 
+
+	dBodySetKinematic(ground_node.body);
+
+
+
+
+
+
 	while (glfwWindowShouldClose(window) == 0) {
 		oldTime = newTime;
 		newTime = getTime();
 		if (floor(newTime) - floor(oldTime) >= 1.0)
 		fprintf(stderr, "main: %f frames/sec\n", 1.0 / (newTime - oldTime));
+
+
+
+
+		dSpaceCollide(space, 0, &nearCallback);
+	
+		// dWorldStep(world, 0.5);
+		dWorldQuickStep(world, 0.05);
+
+		dJointGroupEmpty(contactgroup);
+
+
 		render();
 		glfwSwapBuffers(window);
 		glfwPollEvents();
