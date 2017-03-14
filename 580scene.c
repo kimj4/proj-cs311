@@ -40,9 +40,9 @@ int sceneInitialize(sceneNode *node, GLuint unifDim, GLuint texNum,
 	//Setting Mass
 	dReal density = 5.0;
 	dMass m;
-	dMassSetZero(m);
+	dMassSetZero(&m);
 	dMassSetTrimesh(&m, density, node->meshGLODE->geom);
-	dBodySetMass(node->body, m);
+	dBodySetMass(node->body, &m);
 	return 0;
 }
 

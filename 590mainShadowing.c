@@ -524,7 +524,7 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
     //         dSpaceCollide ((dSpaceID)o2, data, &nearCallback);
 	// 	}
 
-	else {
+	//else {
 		// JK: i think these two work
 		// JK: runtime error is definitely somewhere in this else statement
 		dBodyID b1 = dGeomGetBody(o1);
@@ -574,7 +574,7 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
 		}
 
 
-	}
+	//}
 	// printf("bottom\n");
 }
 
