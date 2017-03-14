@@ -34,9 +34,9 @@ static dJointGroupID contactgroup;
 static dGeomID ground;
 static dReal radius = 0.25;
 static dReal length = 1.0;
+static dReal density = 5.0;
 
-#define DENSITY (5.0)
-#define max_contacts 10
+#define max_contacts 3
 
 
 
@@ -333,17 +333,17 @@ int initializeScene(void) {
 	meshGLODEInitialize(&meshGLODEL, &meshGLL, &mesh, space);
 	meshDestroy(&mesh);
 	//pass meshGLODE to a sceneNode
-	if (sceneInitialize(&cross_node, 3, 1, &cross_GLODE, NULL, NULL, world) != 0)
+	if (sceneInitialize(&cross_node, 3, 1, &cross_GLODE, NULL, NULL, world, 1) != 0)
 		return 14;
-	if (sceneInitialize(&nodeW, 3, 1, &meshGLODEW, NULL, &cross_node, world) != 0)
+	if (sceneInitialize(&nodeW, 3, 1, &meshGLODEW, NULL, &cross_node, world, 1) != 0)
 		return 14;
-	if (sceneInitialize(&nodeL, 3, 1, &meshGLODEL, NULL, NULL, world) != 0)
+	if (sceneInitialize(&nodeL, 3, 1, &meshGLODEL, NULL, NULL, world, 0) != 0)
 		return 16;
-	if (sceneInitialize(&nodeT, 3, 1, &meshGLODET, &nodeL, &nodeW, world) != 0)
+	if (sceneInitialize(&nodeT, 3, 1, &meshGLODET, &nodeL, &nodeW, world, 1) != 0)
 		return 15;
-	if (sceneInitialize(&nodeV, 3, 1, &meshGLODEV, NULL, &nodeT, world) != 0)
+	if (sceneInitialize(&nodeV, 3, 1, &meshGLODEV, NULL, &nodeT, world, 1) != 0)
 		return 13;
-	if (sceneInitialize(&nodeH, 3, 1, &meshGLODEH, &nodeV, NULL, world) != 0)
+	if (sceneInitialize(&nodeH, 3, 1, &meshGLODEH, &nodeV, NULL, world, 1) != 0)
 		return 12;
 	
 	//meshGLODE end usage=============
@@ -358,7 +358,7 @@ int initializeScene(void) {
 	dBodySetPosition(nodeT.body, x, y, z);
 
 
-	vecSet(3, trans, 0.0, 0.0, 100.0);
+	vecSet(3, trans, 0.0, 0.0, 50.0);
 	sceneSetTranslation(&nodeL, trans); // tree leaves translation
 	x = trans[0];
 	y = trans[1];
@@ -395,12 +395,13 @@ void destroyScene(void) {
  	texDestroy(&texT);
  	texDestroy(&texL);
    //implement meshGLODE destruction
- 	meshGLDestroy(&meshGLH);
- 	meshGLDestroy(&meshGLV);
- 	meshGLDestroy(&meshGLW);
- 	meshGLDestroy(&meshGLT);
- 	meshGLDestroy(&meshGLL);
  	sceneDestroyRecursively(&nodeH);
+//    meshGLDestroy(&meshGLH);
+// 	meshGLDestroy(&meshGLV);
+// 	meshGLDestroy(&meshGLW);
+// 	meshGLDestroy(&meshGLT);
+// 	meshGLDestroy(&meshGLL);
+ 	
 }
 
 /* Returns 0 on success, non-zero on failure. Warning: If initialization fails
@@ -542,40 +543,49 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
 		printf("num_contact: %i\n", num_contact);
 		int i;
 
-
+    if (num_contact > 0){
 		// this if statement causes the failure
 		//Added friction to ground
 		if (o1 == ground || o2 == ground) {
+            //printf("aa\n");
 			for(i = 0; i < num_contact; i++) {
-				printf("a\n");
+				//printf("a\n");
 				contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactApprox1;
 				contact[i].surface.mu = 0.5;
 				contact[i].surface.soft_cfm = 1e-8;
 				contact[i].surface.soft_erp = 1.0;
-				// dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
+				 dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
 
-				// dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
+				 dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
 				printf("b\n");
+                
 			}
 		}
-
-		// This if statement is not the cause of the crash
-		if (num_contact > 0){
-			for (i=0; i<num_contact; i++) {
+        else{
+            for (i=0; i<num_contact; i++) {
 				contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
 				contact[i].surface.mu = dInfinity;
 				contact[i].surface.soft_cfm = 1e-8;
 				contact[i].surface.soft_erp = 1.0;
 				contact[i].surface.bounce = 0.25;
-				contact[i].surface.bounce_vel = 1.0;
+				contact[i].surface.bounce_vel = 0.1;
+                printf("c\n");
+			}
+        }
+
+		
+		
+        for (i=0; i<num_contact; i++) {
 				dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
 				dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
+                printf("d\n");
 			}
 		}
 
 
 	//}
-	// printf("bottom\n");
+	 printf("bottom\n");
+    return;
 }
 
 
@@ -622,16 +632,23 @@ void render(void) {
 	shadowUnrender(GL_TEXTURE7);
 
 	//ODE simulation step
-	// dSpaceCollide(space, 0, &nearCallback);
+	dSpaceCollide(space, 0, &nearCallback);
 	
-	dWorldStep(world, 0.01);
+	dWorldStep(world, 0.05);
 
 	dJointGroupEmpty(contactgroup);
 
 
 	const dReal *pos1 = dBodyGetPosition(nodeL.body);
-	// const dReal *rot1 = dBodyGetRotation(nodeL.body);
-	nodeL.translation[2] = pos1[2];
+//	const dReal *rot1 = dBodyGetRotation(nodeL.body);
+//    nodeL.translation[0] = pos1[0];
+//    nodeL.translation[1] = pos1[1];
+//	nodeL.translation[2] = pos1[2];
+    sceneSetTranslation(&nodeL, pos1);
+    
+//    sceneSetRotation(&nodeL, rot1);
+    printf("x = %f,y = %f, z = %f\n", nodeL.translation[0],nodeL.translation[1], nodeL.translation[2]);
+    //getchar();
 	//Derefernce rot1?
 	// mat33Copy(rot1, nodeL.rotation);
 	// nodeL.rotation = rot1;
@@ -646,7 +663,7 @@ void render(void) {
 	// nodeL.rotation[2][2] = rot1[8];
 
 	// const dReal *a = dBodyGetPosition(nodeL.body);
-	// const dReal *b = dGeomGetPosition(nodeL.meshGLODE->geom);
+	//const dReal *b = dGeomGetPosition(nodeL.meshGLODE->geom);
 
 	// printf("%f\n", a[2]);
 	// printf("%f\n", b[2]);
@@ -658,7 +675,7 @@ void startODE(void){
 	world = dWorldCreate();
 	space = dHashSpaceCreate(0);
 	contactgroup = dJointGroupCreate(0);
-	dWorldSetGravity(world, 0, 0, -9.81);
+	dWorldSetGravity(world, 0, 0, -5.81);
 	ground = dCreatePlane(space, 0, 0, 1, 0);
 }
 
@@ -666,8 +683,21 @@ void startODE(void){
 int main(void) {
 	//moved ODE setup into funct
 	startODE();
-
-
+    //Getting a strange "Bad arguments in dBodySetMass" error
+//    dMass m;
+//    dMassSetZero(&m);
+//    dMassSetBox(&m, density, 5, 5, 5);
+//    dBodySetMass(nodeL.body, &m);
+    
+    //kinematics
+    //Getting a strange "Bad arguments in dBodySetKinematic()" error
+//    dBodyID bod;
+//    bod = nodeT.body;
+//    dBodySetKinematic(nodeT.body);
+//    dBodySetKinematic(nodeH.body);
+//    dBodySetKinematic(nodeV.body);
+//    dBodySetKinematic(nodeW.body);
+    
 	double oldTime;
 	double newTime = getTime();
 	glfwSetErrorCallback(handleError);

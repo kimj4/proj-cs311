@@ -18,7 +18,7 @@ struct sceneNode {
 /* Initializes a sceneNode struct. The translation and rotation are initialized to trivial values. The user must remember to call sceneDestroy or
 sceneDestroyRecursively when finished. Returns 0 if no error occurred. */
 int sceneInitialize(sceneNode *node, GLuint unifDim, GLuint texNum,
-      meshGLODE *meshGLO, sceneNode *firstChild, sceneNode *nextSibling, dWorldID world) {
+      meshGLODE *meshGLO, sceneNode *firstChild, sceneNode *nextSibling, dWorldID world, int kinematic) {
   
   node->unif = (GLdouble *)malloc(unifDim * sizeof(GLdouble) +
       texNum * sizeof(texTexture *));
@@ -38,12 +38,19 @@ int sceneInitialize(sceneNode *node, GLuint unifDim, GLuint texNum,
 	dGeomSetBody(node->meshGLODE->geom, node->body);
 	
 	//Setting Mass
-	dReal density = 5.0;
+	dReal density = 150.0;
 	dMass m;
 	dMassSetZero(&m);
-	dMassSetTrimesh(&m, density, node->meshGLODE->geom);
-	dBodySetMass(node->body, &m);
-	return 0;
+
+    if(kinematic == 1){
+        dBodySetKinematic(node->body);
+        node->kinematic = 1; }
+    else{
+        dMassSetBox(&m, density, 5, 5, 5);
+        dBodySetMass(node->body, &m);
+        node->kinematic = 0;
+    }
+    return 0;
 }
 
 /* Deallocates the resources backing this scene node. Does not destroy the
@@ -52,10 +59,10 @@ void sceneDestroy(sceneNode *node) {
 	if (node->unif != NULL)
 		free(node->unif);
 		//free up the vert and tri pointers
-		free(node->meshGLODE->vert);
-		free(node->meshGLODE->tri);
+    free(node->meshGLODE->vert);
+    free(node->meshGLODE->tri);
 		//destroy the meshGL within node
-		meshGLDestroy(node->meshGLODE->meshGL);
+    meshGLDestroy(node->meshGLODE->meshGL);
 	node->unif = NULL;
 }
 
@@ -84,12 +91,14 @@ void sceneDestroyRecursively(sceneNode *node) {
 }
 
 /* Sets the node's rotation. */
-void sceneSetRotation(sceneNode *node, GLdouble rot[3][3]) {
+//Changed GLdouble to const dReal
+void sceneSetRotation(sceneNode *node, const dReal *rot[3][3]) {
 	vecCopy(9, (GLdouble *)rot, (GLdouble *)(node->rotation));
 }
 
 /* Sets the node's translation. */
-void sceneSetTranslation(sceneNode *node, GLdouble transl[3]) {
+//Changed GLdouble to dReal
+void sceneSetTranslation(sceneNode *node, const dReal transl[3]) {
 	vecCopy(3, transl, node->translation);
 }
 
