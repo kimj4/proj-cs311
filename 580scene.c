@@ -7,49 +7,45 @@ struct sceneNode {
 	GLdouble translation[3];
 	GLuint unifDim;
 	GLdouble *unif;
-	meshGLODE *meshGLODE;
+	meshGLMesh *meshGL;
 	sceneNode *firstChild, *nextSibling;
   	GLint texNum;
   	texTexture **tex;
-	dBodyID body;
 	int kinematic;
 };
 
 /* Initializes a sceneNode struct. The translation and rotation are initialized to trivial values. The user must remember to call sceneDestroy or
 sceneDestroyRecursively when finished. Returns 0 if no error occurred. */
 int sceneInitialize(sceneNode *node, GLuint unifDim, GLuint texNum,
-      meshGLODE *meshGLO, sceneNode *firstChild, sceneNode *nextSibling, dWorldID world, int kinematic) {
+      meshGLMesh *meshGL, sceneNode *firstChild, sceneNode *nextSibling, dWorldID world, int kinematic) {
   
   node->unif = (GLdouble *)malloc(unifDim * sizeof(GLdouble) +
       texNum * sizeof(texTexture *));
 
   if (node->unif == NULL)
       return 1;
-  node->tex = (texTexture **)&(node->unif[unifDim]);
-  node->texNum = texNum;
-  mat33Identity(node->rotation);
+  	node->tex = (texTexture **)&(node->unif[unifDim]);
+  	node->texNum = texNum;
+  	mat33Identity(node->rotation);
 	vecSet(3, node->translation, 0.0, 0.0, 0.0);
 	node->unifDim = unifDim;
-	node->meshGLODE = meshGLO;
+	node->meshGL = meshGL;
 	node->firstChild = firstChild;
 	node->nextSibling = nextSibling;
-
-	node->body = dBodyCreate(world);
-	dGeomSetBody(node->meshGLODE->geom, node->body);
 	
-	//Setting Mass
-	dReal density = 150.0;
-	dMass m;
-	dMassSetZero(&m);
+	// Setting Mass
+	// dReal density = 50.0;
+	// dMass m;
+	// dMassSetZero(&m);
 
-    if(kinematic == 1){
-        dBodySetKinematic(node->body);
-        node->kinematic = 1; }
-    else{
-        dMassSetBox(&m, density, 5, 5, 5);
-        dBodySetMass(node->body, &m);
-        node->kinematic = 0;
-    }
+ //    if(kinematic == 1){
+ //        dBodySetKinematic(node->body);
+ //        node->kinematic = 1; }
+ //    else{
+ //        dMassSetBox(&m, density, 5, 5, 5);
+ //        dBodySetMass(node->body, &m);
+ //        node->kinematic = 0;
+ //    }
     return 0;
 }
 
@@ -58,11 +54,11 @@ resources backing the mesh, etc. */
 void sceneDestroy(sceneNode *node) {
 	if (node->unif != NULL)
 		free(node->unif);
-		//free up the vert and tri pointers
-    free(node->meshGLODE->vert);
-    free(node->meshGLODE->tri);
+		// //free up the vert and tri pointers
+  //   free(node->meshGL->vert);
+  //   free(node->meshGL->tri);
 		//destroy the meshGL within node
-    meshGLDestroy(node->meshGLODE->meshGL);
+    meshGLDestroy(node->meshGL);
 	node->unif = NULL;
 }
 
@@ -106,7 +102,7 @@ void sceneSetTranslation(sceneNode *node, GLdouble transl[3]) {
 
 /* Sets the scene's mesh. */
 void sceneSetMesh(sceneNode *node, meshGLMesh *mesh) {
-	node->meshGLODE->meshGL = mesh;
+	node->meshGL = mesh;
 }
 
 /* Sets the node's first child. */
@@ -284,7 +280,7 @@ void sceneRender(sceneNode *node, GLdouble parent[4][4], GLint modelingLoc,
 
 	/* Render the mesh */
 
-	meshGLRender(node->meshGLODE->meshGL, VAOindex);
+	meshGLRender(node->meshGL, VAOindex);
 
 
 	/* unrender all the textures that were previously rendered. (again up to 8)*/

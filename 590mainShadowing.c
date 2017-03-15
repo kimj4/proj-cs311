@@ -44,16 +44,16 @@ static dReal density = 5.0;
 // ==== scene globals ====
 camCamera cam;
 texTexture texH, texV, texTrebuchet;
-meshGLODE meshGLODEL;
+// meshGLODE meshGLODEL;
 meshGLMesh meshGLL;
 sceneNode nodeL;
 shadowProgram sdwProg;
 
 // trebuchet 
-meshGLODE wheelFL_GLODE, wheelFR_GLODE, wheelBL_GLODE, wheelBR_GLODE,
-		  axelF_GLODE, axelB_GLODE, baseL_GLODE, baseR_GLODE,
-		  supportFL_GLODE, supportFR_GLODE, supportBL_GLODE, supportBR_GLODE,
-		  cross_GLODE, arm_GLODE, counterweight_GLODE, bucket_GLODE;
+// meshGLODE wheelFL_GLODE, wheelFR_GLODE, wheelBL_GLODE, wheelBR_GLODE,
+// 		  axelF_GLODE, axelB_GLODE, baseL_GLODE, baseR_GLODE,
+// 		  supportFL_GLODE, supportFR_GLODE, supportBL_GLODE, supportBR_GLODE,
+// 		  cross_GLODE, arm_GLODE, counterweight_GLODE, bucket_GLODE;
 meshGLMesh wheelFL_GL, wheelFR_GL, wheelBL_GL, wheelBR_GL,
 		  axelF_GL, axelB_GL, baseL_GL, baseR_GL,
 		  supportFL_GL, supportFR_GL, supportBL_GL, supportBR_GL,
@@ -64,7 +64,6 @@ sceneNode wheelFL_node, wheelFR_node, wheelBL_node, wheelBR_node,
 		  cross_node, arm_node, counterweight_node, bucket_node;
 
 // ground
-meshGLODE ground_GLODE;
 meshGLMesh ground_GL;
 sceneNode ground_node;
 
@@ -228,38 +227,71 @@ int initializeScene(void) {
 // 	// ======================= end trebuchet construction =========================
 	
 	// Ground
-	if (meshInitializeBox(&mesh, -100.0, 100.0, -100.0, 100.0, -1.0, 1.0) != 0) {
+	int groundDensity = 200.0;
+	if (meshInitializeBox(&mesh, -100.0, 100.0, -100.0, 100.0, -1.0, 1.0, world, space, groundDensity) != 0) {
 		return 1;
 	}
 	meshGLInitialize(&ground_GL, &mesh, 3, attrDims, vaoNums);
 	meshGLVAOInitialize(&ground_GL, 0, attrLocs);
 	meshGLVAOInitialize(&ground_GL, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&ground_GLODE, &ground_GL, &mesh, space);
+	// meshGLODEInitialize(&ground_GLODE, &ground_GL, &mesh, space);
 	meshDestroy(&mesh);
 
 	// test object
-	if (meshInitializeBox(&mesh, -5, 5, -5, 5, -5, 5) != 0)
-		return 11;
+	int testObjectDensity = 20.0;
+	// if (meshInitializeBox(&mesh, -10.0, 10.0, -10.0, 10.0, -10.0, 10.0) != 0)
+	// 	return 11;
+	if (meshInitializeSphere(&mesh, 5, 20, 20, world, space, testObjectDensity) != 0) {
+		return 2;
+	}
 	meshGLInitialize(&meshGLL, &mesh, 3, attrDims, vaoNums);
 	meshGLVAOInitialize(&meshGLL, 0, attrLocs);
 	meshGLVAOInitialize(&meshGLL, 1, sdwProg.attrLocs);
-	meshGLODEInitialize(&meshGLODEL, &meshGLL, &mesh, space);
+	// meshGLODEInitialize(&meshGLODEL, &meshGLL, &mesh, space);
 	meshDestroy(&mesh);
 
-	if (sceneInitialize(&nodeL, 3, 1, &meshGLODEL, NULL, NULL, world, 0) != 0)
+	if (sceneInitialize(&nodeL, 3, 1, &meshGLL, NULL, NULL, world, 0) != 0)
 		return 1;
 
-	if (sceneInitialize(&ground_node, 3, 1, &ground_GLODE, NULL, &nodeL, world, 1) != 0)
+	if (sceneInitialize(&ground_node, 3, 1, &ground_GL, NULL, &nodeL, world, 1) != 0)
 		return 2;
 	
+
+	// // test code to see if boxes work over trimeshes
+	// // nodeL.meshGLODE->geom = dCreateBox(space, 20.0, 20.0, 20.0);
+	// nodeL.meshGLODE->geom = dCreateSphere(space, 5.0);
+
+	// dReal density = 25.0;
+	// dMass m1;
+	// dMassSetSphere(&m1, density, 5.0);
+	// // dMassSetBox(&m1, density, 20.0, 20.0, 20.0);
+
+ //    dBodySetMass(nodeL.body, &m1);
+ //    dGeomSetBody(nodeL.meshGLODE->geom, nodeL.body);
+
+
+ //    dReal density2 = 1000;
+ //    ground_node.meshGLODE->geom = dCreateBox(space, 200.0, 200.0, 2.0);
+	// dMass m2;
+	// dMassSetBox(&m2, density2, 200.0, 200.0, 2.0);
+ //    dBodySetMass(ground_node.body, &m2);
+ //    dGeomSetBody(ground_node.meshGLODE->geom, ground_node.body);
+
+    dBodySetKinematic(ground_node.meshGL->body);
+
+
+
+
+
+
 
 	dReal x,y,z;
 	// GLdouble trans[3] = {0.0, 0.0, 10.0};
 	// sceneSetTranslation(&ground_node, trans); // tree trunk translation
 	x = 0.0;
 	y = 0.0;
-	z = 10.0;
-	dBodySetPosition(ground_node.body, x, y, z);
+	z = 20.0;
+	dBodySetPosition(ground_node.meshGL->body, x, y, z);
 
 
 
@@ -271,9 +303,9 @@ int initializeScene(void) {
 	x = 0.0;
 	y = 0.0;
 	z = 100.0;
-	dBodySetPosition(nodeL.body, x, y, z);
+	dBodySetPosition(nodeL.meshGL->body, x, y, z);
 	// dBodySetTorque(nodeL.body, 100.0, 0.0, 0.0);
-	dBodySetForce(nodeL.body, 20.0, 0.0, 0.0);
+	// dBodySetForce(nodeL.body, 20.0, 0.0, 0.0);
 
 	texTexture *tex;
 	tex = &texV;
@@ -282,8 +314,8 @@ int initializeScene(void) {
 	sceneSetTexture(&ground_node, &tex);
 
 
-	printf("ground pointer: %p\n", ground_node.meshGLODE->geom);
-	printf("box pointer: %p\n", nodeL.meshGLODE->geom);
+	printf("ground pointer: %p\n", ground_node.meshGL->geom);
+	printf("box pointer: %p\n", nodeL.meshGL->geom);
 
 
 	return 0;
@@ -401,71 +433,158 @@ int initializeShaderProgram(void) {
 
 
 
-//Collision Detection from the manual
-//May need dGeomID node.meshGLODE.geom
-static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
-	// printf("%p\n", o1);
-	// printf("%p\n", o2);
-	dBodyID b1 = dGeomGetBody(o1);
-	dBodyID b2 = dGeomGetBody(o2);
+// //Collision Detection from the manual
+// //May need dGeomID node.meshGLODE.geom
+// static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
+// 	printf("%p\n", o1);
+// 	printf("%p\n", o2);
+// 	dBodyID b1 = dGeomGetBody(o1);
+// 	dBodyID b2 = dGeomGetBody(o2);
 
-	dContact contact[max_contacts];
+// 	dContact contact[max_contacts];
 
-	// colliding two non-space geoms, so generate contact points between o1 and o2
-	int num_contact = dCollide(o1, o2, max_contacts, &contact[0].geom, sizeof(dContact));
-	// printf("num_contact: %i\n", num_contact);
-	int i;
+// 	// colliding two non-space geoms, so generate contact points between o1 and o2
+// 	int num_contact = dCollide(o1, o2, max_contacts, &contact[0].geom, sizeof(dContact));
+// 	// printf("num_contact: %i\n", num_contact);
+// 	int i;
 
-	 for (i = 0; i < max_contacts; i++) {
-		contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
-		// contact[i].surface.mode = dContactSoftERP | dContactBounce;
-		// contact[i].surface.mode = dContactBounce;
-		contact[i].surface.mu = dInfinity;
-		contact[i].surface.soft_cfm = 1e-8;
-		contact[i].surface.soft_erp = 1.0;
-		contact[i].surface.bounce = 0.25;
-		contact[i].surface.bounce_vel = 0.1;
-	}
+// 	 for (i = 0; i < max_contacts; i++) {
+// 		contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
+// 		// contact[i].surface.mode = dContactSoftERP | dContactBounce;
+// 		// contact[i].surface.mode = dContactBounce;
+// 		contact[i].surface.mu = dInfinity;
+// 		contact[i].surface.soft_cfm = 1e-8;
+// 		contact[i].surface.soft_erp = 0.0;
+// 		contact[i].surface.bounce = 0.25;
+// 		contact[i].surface.bounce_vel = 0.1;
+// 	}
 
-  //   if (num_contact > 0){
-		// if ((o1 == ground) || (o2 == ground)) {
-		// 	printf("1\n");
-		// 	for(i = 0; i < num_contact; i++) {
-		// 		// printf("there\n");
-		// 		// contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactApprox1;
-		// 		contact[i].surface.mode = dContactSoftERP | dContactApprox1;
-		// 		contact[i].surface.mu = 0.5;
-		// 		// contact[i].surface.soft_cfm = 1e-8;
-		// 		contact[i].surface.soft_erp = 1.0;
-		// 		contact[i].surface.bounce = 0.9;
-		// 		contact[i].surface.bounce_vel = 0.9;
-		// 		dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
-		// 		dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));              
-		// 	}
-		// }
-   //      else {
-   //      	printf("here\n");
-   //          for (i = 0; i < num_contact; i++) {
-			// 	// contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
-			// 	// contact[i].surface.mode = dContactSoftERP | dContactBounce;
-			// 	contact[i].surface.mode = dContactBounce;
-			// 	contact[i].surface.mu = dInfinity;
-			// 	// contact[i].surface.soft_cfm = 1e-8;
-			// 	// contact[i].surface.soft_erp = 1.0;
-			// 	contact[i].surface.bounce = 0.25;
-			// 	contact[i].surface.bounce_vel = 0.1;
-			// }
-   //      }
-  //       for (i = 0; i < num_contact; i++) {
-		// 	dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
-		// 	dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
-		// }
-		for (i = 0; i < num_contact; i++) {
-			dJointID con = dJointCreateContact(world, contactgroup, contact + i);
-			dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
-		}
-	// }
-    return;
+//     if (num_contact > 0){
+// 		if ((o1 == ground) || (o2 == ground)) {
+// 			printf("1\n");
+// 			for(i = 0; i < num_contact; i++) {
+// 				// printf("there\n");
+// 				// contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactApprox1;
+// 				contact[i].surface.mode = dContactSoftERP | dContactApprox1;
+// 				contact[i].surface.mu = 0.5;
+// 				// contact[i].surface.soft_cfm = 1e-8;
+// 				contact[i].surface.soft_erp = 1.0;
+// 				contact[i].surface.bounce = 0.9;
+// 				contact[i].surface.bounce_vel = 0.9;
+// 				dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
+// 				dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));              
+// 			}
+// 		}
+//         else {
+//         	printf("here\n");
+//             for (i = 0; i < num_contact; i++) {
+// 				// contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
+// 				// contact[i].surface.mode = dContactSoftERP | dContactBounce;
+// 				contact[i].surface.mode = dContactBounce;
+// 				contact[i].surface.mu = dInfinity;
+// 				// contact[i].surface.soft_cfm = 1e-8;
+// 				// contact[i].surface.soft_erp = 1.0;
+// 				contact[i].surface.bounce = 0.25;
+// 				contact[i].surface.bounce_vel = 0.1;
+// 			}
+//         }
+//         for (i = 0; i < num_contact; i++) {
+// 			dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
+// 			dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
+// 		}
+// 		// for (i = 0; i < num_contact; i++) {
+// 		// 	dJointID con = dJointCreateContact(world, contactgroup, contact + i);
+// 		// 	// dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
+// 		// 	dJointAttach(con, b1, b2);
+// 		// }
+// 	}
+//     return;
+// }
+
+
+static void nearCallback (void *data, dGeomID o1, dGeomID o2)
+
+{
+
+    // Temporary index for each contact
+
+    int i;
+
+
+   // Get the dynamics body for each geom
+
+    dBodyID b1 = dGeomGetBody(o1);
+
+    dBodyID b2 = dGeomGetBody(o2);
+
+
+
+    // Create an array of dContact objects to hold the contact joints
+
+    dContact contact[max_contacts];
+
+
+
+    // Now we set the joint properties of each contact. Going into the full details here would require a tutorial of its
+
+       // own. I'll just say that the members of the dContact structure control the joint behaviour, such as friction,
+
+       // velocity and bounciness. See section 7.3.7 of the ODE manual and have fun experimenting to learn more.  
+
+    for (i = 0; i < max_contacts; i++)
+
+    {
+
+        contact[i].surface.mode = dContactBounce;
+
+        contact[i].surface.mu = dInfinity;
+
+        // contact[i].surface.mu2 = 0.5;
+
+        contact[i].surface.bounce = 0.5;
+
+        contact[i].surface.bounce_vel = 0.1;
+
+    }
+
+
+
+    // Here we do the actual collision test by calling dCollide. It returns the number of actual contact points or zero
+
+       // if there were none. As well as the geom IDs, max number of contacts we also pass the address of a dContactGeom
+
+       // as the fourth parameter. dContactGeom is a substructure of a dContact object so we simply pass the address of
+
+       // the first dContactGeom from our array of dContact objects and then pass the offset to the next dContactGeom
+
+       // as the fifth paramater, which is the size of a dContact structure. That made sense didn't it?  
+
+    if (int numc = dCollide(o1, o2, max_contacts, &contact[0].geom, sizeof(dContact)))
+
+    {
+
+        // To add each contact point found to our joint group we call dJointCreateContact which is just one of the many
+
+           // different joint types available.  
+
+        for (i = 0; i < numc; i++)
+
+        {
+
+            // dJointCreateContact needs to know which world and joint group to work with as well as the dContact
+
+               // object itself. It returns a new dJointID which we then use with dJointAttach to finally create the
+
+               // temporary contact joint between the two geom bodies.
+
+            dJointID c = dJointCreateContact(world, contactgroup, contact + i);
+
+            dJointAttach(c, b1, b2);
+
+        }
+
+    }
+
 }
 
 
@@ -513,13 +632,13 @@ void render(void) {
 	
 
 
-	const dReal *pos1 = dBodyGetPosition(nodeL.body);
+	const dReal *pos1 = dBodyGetPosition(nodeL.meshGL->body);
 	// const dReal *rot1 = dBodyGetRotation(nodeL.body);
    	nodeL.translation[0] = pos1[0];
    	nodeL.translation[1] = pos1[1];
 	nodeL.translation[2] = pos1[2];
 
-	const dReal *pos2 = dBodyGetPosition(ground_node.body);	
+	const dReal *pos2 = dBodyGetPosition(ground_node.meshGL->body);	
 	ground_node.translation[0] = pos2[0];	
    	ground_node.translation[1] = pos2[1];
 	ground_node.translation[2] = pos2[2];
@@ -585,6 +704,8 @@ void startODE(void){
 	space = dSimpleSpaceCreate(0);
 	contactgroup = dJointGroupCreate(0);
 	dWorldSetGravity(world, 2.0, 0.0, -9.81);
+	dWorldSetContactSurfaceLayer(world, 0.001);
+
 	ground = dCreatePlane(space, 0.0, 0.0, 1.0, 0.0);
 	
 }
@@ -642,13 +763,6 @@ int main(void) {
 		return 4;
 	if (initializeScene() != 0)
 		return 5;
-
-
-
-	// dBodySetKinematic(ground_node.body);
-
-
-
 
 
 

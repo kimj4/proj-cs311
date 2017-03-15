@@ -1,5 +1,13 @@
 /*** Creating and destroying ***/
 
+#define MESH_TYPE_UNSUPPORTED 0;
+#define MESH_TYPE_BOX 1;
+#define MESH_TYPE_SPHERE 2;
+#define MESH_TYPE_CAPSULE 3;
+
+
+
+
 /* Feel free to read the struct's members, but don't write them, except through
 the accessors below such as meshSetTriangle, meshSetVertex. */
 typedef struct meshMesh meshMesh;
@@ -7,6 +15,9 @@ struct meshMesh {
 	GLuint triNum, vertNum, attrDim;
 	GLuint *tri;						/* triNum * 3 GLuints */
 	GLdouble *vert;					/* vertNum * attrDim GLdoubles */
+	GLuint meshType;
+	dGeomID geom;
+	dBodyID body;
 };
 
 typedef struct meshGLMesh meshGLMesh;
@@ -15,59 +26,63 @@ struct meshGLMesh {
   	GLuint *attrDims;
   	GLuint *vaos;
 	GLuint buffers[2];
-};
-
-typedef struct meshGLODE meshGLODE;
-struct meshGLODE {
-	unsigned int *tri;      //array of int indices
-	dReal *vert;   //array of dReal vertices
+	GLuint meshType;
 	dGeomID geom;
-	meshGLMesh *meshGL;
+	dBodyID body;
 };
 
 
-// forward declarations
-int meshGLInitialize(meshGLMesh *meshGL, meshMesh *mesh, GLuint attrNum, GLuint attrDims[], GLuint vaoNum);
+// typedef struct meshGLODE meshGLODE;
+// struct meshGLODE {
+// 	unsigned int *tri;      //array of int indices
+// 	dReal *vert;   //array of dReal vertices
+// 	dGeomID geom;
+// 	meshGLMesh *meshGL;
+// };
 
-int meshGLODEInitialize(meshGLODE *meshGLODE, meshGLMesh *meshGL, meshMesh *mesh, dSpaceID space) {
-	meshGLODE->meshGL = meshGL;
 
-	
-	int i;
-	dReal *verts;
-	verts = (dReal *)malloc(mesh->vertNum * sizeof(dReal));
-	if (verts == NULL)
-		return 1;
-	
-	for (i = 0; i < mesh->vertNum; i++){
-		verts[i] = mesh->vert[i];
-	}
-
-	meshGLODE->vert = verts;
-
-	unsigned int *index;
-
-	// index = (unsigned int *)malloc(mesh->triNum * meshGL->attrNum * sizeof(unsigned int));
-	// index = (unsigned int *)malloc(3 * mesh->triNum * sizeof(unsigned int));
-	meshGLODE->tri = (unsigned int *)malloc(3 * mesh->triNum * sizeof(unsigned int));
-	// if (index == NULL) {
-	// 	return 2;
-	// }
-	
-	for (i = 0; i < 3 * mesh->triNum; i++){
-		// index[i] = mesh->tri[i];
-		meshGLODE->tri[i] = mesh->tri[i];
-	}
-	// meshGLODE->tri = index;
-	
-
-	dTriMeshDataID meshData = dGeomTriMeshDataCreate();
-	dGeomTriMeshDataBuildSimple (meshData, meshGLODE->vert, mesh->vertNum, meshGLODE->tri, 3 * mesh->triNum);
-	meshGLODE->geom = dCreateTriMesh(space, meshData, 0, 0, 0); 
+// int meshGLODEInitialize(meshGLODE *meshGLODE, meshGLMesh *meshGL, meshMesh *mesh, dSpaceID space) {
+// 	meshGLODE->meshGL = meshGL;
 
 	
-	return 0;
-}
+// 	int i;
+// 	dReal *verts;
+// 	verts = (dReal *)malloc(mesh->vertNum * sizeof(dReal));
+// 	// meshGLODE->vert = (dReal *)malloc(mesh->vertNum * sizeof(dReal));
+// 	if (verts == NULL)
+// 		return 1;
+	
+// 	for (i = 0; i < mesh->vertNum; i++){
+// 		verts[i] = mesh->vert[i];
+// 		// meshGLODE->vert[i] = mesh->vert[i];
+// 	}
+
+// 	meshGLODE->vert = verts;
+
+// 	unsigned int *index;
+
+// 	// index = (unsigned int *)malloc(mesh->triNum * meshGL->attrNum * sizeof(unsigned int));
+// 	index = (unsigned int *)malloc(3 * mesh->triNum * sizeof(unsigned int));
+// 	// meshGLODE->tri = (unsigned int *)malloc(3 * mesh->triNum * sizeof(unsigned int));
+// 	if (index == NULL) {
+// 		return 2;
+// 	}
+	
+// 	for (i = 0; i < 3 * mesh->triNum; i++){
+// 		index[i] = mesh->tri[i];
+// 		// meshGLODE->tri[i] = mesh->tri[i];
+// 	}
+// 	meshGLODE->tri = index;
+	
+
+// 	dTriMeshDataID meshData = dGeomTriMeshDataCreate();
+// 	dGeomTriMeshDataBuildSimple (meshData, meshGLODE->vert, mesh->vertNum, meshGLODE->tri, 3 * mesh->triNum);
+// 	// dGeomTriMeshDataBuildDouble1 (meshData, meshGLODE->vert,  1, mesh->vertNum, meshGLODE->tri, 3 * mesh->triNum, 3, const void *Normals)
+// 	meshGLODE->geom = dCreateTriMesh(space, meshData, 0, 0, 0); 
+
+	
+// 	return 0;
+// }
 
 /* Initializes a mesh with enough memory to hold its triangles and vertices.
 Does not actually fill in those triangles or vertices with useful data. When
@@ -140,6 +155,10 @@ on success, non-zero on failure. */
 int meshGLInitialize(meshGLMesh *meshGL, meshMesh *mesh, GLuint attrNum,
                      GLuint attrDims[], GLuint vaoNum) {
 
+    meshGL->meshType = mesh->meshType;
+    meshGL->body = mesh->body;
+    meshGL->geom = mesh->geom;
+
     meshGL->attrDims = (GLuint *)malloc((attrNum + vaoNum) * sizeof(GLuint));
     
     if (meshGL->attrDims == NULL)
@@ -165,6 +184,7 @@ int meshGLInitialize(meshGLMesh *meshGL, meshMesh *mesh, GLuint attrNum,
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshGL->buffers[1]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, meshGL->triNum * 3 * sizeof(GLuint),
         		 (GLvoid *)(mesh->tri), GL_STATIC_DRAW);
+
     return 0;
   }
 
@@ -348,7 +368,8 @@ discontinuous at the edges (flat shading, not smooth). To facilitate this, some
 vertices have equal XYZ but different NOP, for 24 vertices in all. Don't forget
 to meshDestroy when finished. */
 int meshInitializeBox(meshMesh *mesh, GLdouble left, GLdouble right,
-		GLdouble bottom, GLdouble top, GLdouble base, GLdouble lid) {
+		GLdouble bottom, GLdouble top, GLdouble base, GLdouble lid, dWorldID world, dSpaceID space, int density) {
+	mesh->meshType = MESH_TYPE_BOX;
 	GLuint error = meshInitialize(mesh, 12, 24, 3 + 2 + 3);
 	if (error == 0) {
 		/* Make the triangles. */
@@ -414,6 +435,26 @@ int meshInitializeBox(meshMesh *mesh, GLdouble left, GLdouble right,
 		meshSetVertex(mesh, 23, v);
 		/* Now make vertex 0 for realsies. */
 		vecSet(8, v, left, bottom, base, 0.0, 0.0, 0.0, 0.0, -1.0);
+
+
+		/* ODE additions */
+		// ODE makes boxes with side lengths
+		dReal lx, ly, lz;
+		lx = fabs(left) + fabs(right);
+		ly = fabs(bottom) + fabs(top);
+		lz = fabs(base) + fabs(lid);
+
+		// make geom
+		mesh->geom = dCreateBox(space, lx, ly, lz);
+		// make body
+		mesh->body = dBodyCreate(world);
+		// set mass on body
+		dMass m;
+		dMassSetBox(&m, density, lx, ly, lz);
+    	dBodySetMass(mesh->body, &m);
+    	// link body to geom
+    	dGeomSetBody(mesh->geom, mesh->body);
+
 	}
 	return error;
 }
@@ -498,7 +539,8 @@ and layerNum parameters control the fineness of the mesh. The attributes are
 XYZ position, ST texture, and NOP unit normal vector. The normals are smooth.
 Don't forget to meshDestroy when finished. */
 int meshInitializeSphere(meshMesh *mesh, GLdouble r, GLuint layerNum,
-		GLuint sideNum) {
+		GLuint sideNum, dWorldID world, dSpaceID space, int density) {
+	mesh->meshType = MESH_TYPE_SPHERE;
 	GLuint error, i;
 	GLdouble *ts = (GLdouble *)malloc((layerNum + 1) * 3 * sizeof(GLdouble));
 	if (ts == NULL)
@@ -514,8 +556,24 @@ int meshInitializeSphere(meshMesh *mesh, GLdouble r, GLuint layerNum,
 		error = meshInitializeRevolution(mesh, layerNum + 1, zs, rs, ts,
 			sideNum);
 		free(ts);
+
+
+		/* ODE additions */
+		dReal radius = r;
+
+		// make geom
+		mesh->geom = dCreateSphere(space, radius);
+		// make body
+		mesh->body = dBodyCreate(world);
+		// set mass on body
+		dMass m;
+		dMassSetSphere(&m, density, r);
+		dBodySetMass(mesh->body, &m);
+		// link body to geom
+		dGeomSetBody(mesh->geom, mesh->body);
 		return error;
 	}
+	
 }
 
 /* Builds a mesh for a circular cylinder with spherical caps, centered at the
@@ -524,7 +582,8 @@ control the fineness of the mesh. The attributes are XYZ position, ST texture,
 and NOP unit normal vector. The normals are smooth. Don't forget to meshDestroy
 when finished. */
 int meshInitializeCapsule(meshMesh *mesh, GLdouble r, GLdouble l,
-		GLuint layerNum, GLuint sideNum) {
+		GLuint layerNum, GLuint sideNum, dWorldID world, dSpaceID space, int density) {
+	mesh->meshType = MESH_TYPE_CAPSULE;
 	GLuint error, i;
 	GLdouble theta;
 	GLdouble *ts = (GLdouble *)malloc((6 * layerNum + 6) * sizeof(GLdouble));
@@ -554,6 +613,25 @@ int meshInitializeCapsule(meshMesh *mesh, GLdouble r, GLdouble l,
 		error = meshInitializeRevolution(mesh, 2 * layerNum + 2, zs, rs, ts,
 			sideNum);
 		free(ts);
+
+
+		/* ODE additions */
+		dReal radius = r;
+		dReal length = l;
+
+		// make geom
+		mesh->geom = dCreateCCylinder(space, radius, length);
+		// make body
+		mesh->body = dBodyCreate(world);
+		// set mass on body
+		dMass m;
+		// 3 to allign mass about the z axis since geom creation is by default in that direction.
+		dMassSetCapsule(&m, density, 3, radius, length);
+		dBodySetMass(mesh->body, &m);
+		// link body to geom
+		dGeomSetBody(mesh->geom, mesh->body);
+
+
 		return error;
 	}
 }
@@ -655,14 +733,4 @@ int meshInitializeDissectedLandscape(meshMesh *mesh, meshMesh *land,
 		meshSmoothNormals(mesh, 5);
 	}
 	return error;
-}
-
-int meshInitializeTrebuchet(meshMesh *mesh) {
-	// meshInitializeBox(meshMesh *mesh, GLdouble left, GLdouble right,
-	// 	GLdouble bottom, GLdouble top, GLdouble base, GLdouble lid)
-	if (meshInitializeBox(mesh, -10.0, 10.0, -10.0, 10.0, -2.0, 2.0) != 0) {
-		return 1;
-	} 
-
-
 }
