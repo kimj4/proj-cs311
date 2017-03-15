@@ -17,7 +17,7 @@ struct sceneNode {
 /* Initializes a sceneNode struct. The translation and rotation are initialized to trivial values. The user must remember to call sceneDestroy or
 sceneDestroyRecursively when finished. Returns 0 if no error occurred. */
 int sceneInitialize(sceneNode *node, GLuint unifDim, GLuint texNum,
-      meshGLMesh *meshGL, sceneNode *firstChild, sceneNode *nextSibling, dWorldID world, int kinematic) {
+      meshGLMesh *meshGL, sceneNode *firstChild, sceneNode *nextSibling, dWorldID world) {
   
   node->unif = (GLdouble *)malloc(unifDim * sizeof(GLdouble) +
       texNum * sizeof(texTexture *));
