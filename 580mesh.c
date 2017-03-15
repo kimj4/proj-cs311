@@ -34,19 +34,24 @@ struct meshGLMesh {
 
 // typedef struct meshGLODE meshGLODE;
 // struct meshGLODE {
-// 	unsigned int *tri;      //array of int indices
+// 	int *tri;      //array of int indices
 // 	dReal *vert;   //array of dReal vertices
 // 	dGeomID geom;
 // 	meshGLMesh *meshGL;
 // };
 
-
+/*Blades: altered arrays to be used with dGeomTriMeshDataBuildSimple().
+The other dGeomTriMeshDataCreate functions should work now as well.
+Using dTriCallback within nearCallBack could prevent trimesh types from
+colliding unnecessarily with each other. Further practice and troubleshooting
+necessary.
+*/
 // int meshGLODEInitialize(meshGLODE *meshGLODE, meshGLMesh *meshGL, meshMesh *mesh, dSpaceID space) {
 // 	meshGLODE->meshGL = meshGL;
 
 	
 // 	int i;
-// 	dReal *verts;
+// 	const dReal *verts;
 // 	verts = (dReal *)malloc(mesh->vertNum * sizeof(dReal));
 // 	// meshGLODE->vert = (dReal *)malloc(mesh->vertNum * sizeof(dReal));
 // 	if (verts == NULL)
@@ -59,7 +64,7 @@ struct meshGLMesh {
 
 // 	meshGLODE->vert = verts;
 
-// 	unsigned int *index;
+// 	const int *index;
 
 // 	// index = (unsigned int *)malloc(mesh->triNum * meshGL->attrNum * sizeof(unsigned int));
 // 	index = (unsigned int *)malloc(3 * mesh->triNum * sizeof(unsigned int));
@@ -76,8 +81,9 @@ struct meshGLMesh {
 	
 
 // 	dTriMeshDataID meshData = dGeomTriMeshDataCreate();
-// 	dGeomTriMeshDataBuildSimple (meshData, meshGLODE->vert, mesh->vertNum, meshGLODE->tri, 3 * mesh->triNum);
-// 	// dGeomTriMeshDataBuildDouble1 (meshData, meshGLODE->vert,  1, mesh->vertNum, meshGLODE->tri, 3 * mesh->triNum, 3, const void *Normals)
+// 	dGeomTriMeshDataBuildSimple (meshData, meshGLODE->vert, mesh->vertNum, meshGLODE->tri, mesh->triNum);
+//  dGeomTriMeshDataBuildSingle (meshData, meshGLODE->vert, 3*sizeof(dReal), mesh->vertNum, meshGLODE->tri, 3 * mesh->triNum, 3*sizeof(int));
+// 	// dGeomTriMeshDataBuildDouble (meshData, meshGLODE->vert, 3*sizeof(dReal), mesh->vertNum, meshGLODE->tri, 3 * mesh->triNum, 3*sizeof(int));
 // 	meshGLODE->geom = dCreateTriMesh(space, meshData, 0, 0, 0); 
 
 	
