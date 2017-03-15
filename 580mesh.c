@@ -19,7 +19,7 @@ struct meshGLMesh {
 
 typedef struct meshGLODE meshGLODE;
 struct meshGLODE {
-	int *tri;      //array of int indices
+	unsigned int *tri;      //array of int indices
 	dReal *vert;   //array of dReal vertices
 	dGeomID geom;
 	meshGLMesh *meshGL;
@@ -32,7 +32,7 @@ int meshGLInitialize(meshGLMesh *meshGL, meshMesh *mesh, GLuint attrNum, GLuint 
 int meshGLODEInitialize(meshGLODE *meshGLODE, meshGLMesh *meshGL, meshMesh *mesh, dSpaceID space) {
 	meshGLODE->meshGL = meshGL;
 
-	dTriMeshDataID meshData = dGeomTriMeshDataCreate();
+	
 	int i;
 	dReal *verts;
 	verts = (dReal *)malloc(mesh->vertNum * sizeof(dReal));
@@ -42,20 +42,27 @@ int meshGLODEInitialize(meshGLODE *meshGLODE, meshGLMesh *meshGL, meshMesh *mesh
 	for (i = 0; i < mesh->vertNum; i++){
 		verts[i] = mesh->vert[i];
 	}
+
 	meshGLODE->vert = verts;
 
-	int *index;
-	index = (int *)malloc(mesh->triNum * meshGL->attrNum * sizeof(unsigned int));
-	if (verts == NULL)
-		return 2;
-	for (i = 0; i < 3 * mesh->triNum; i++){
-		index[i] = mesh->tri[i];
-	}
-	meshGLODE->tri = index;
+	unsigned int *index;
+
+	// index = (unsigned int *)malloc(mesh->triNum * meshGL->attrNum * sizeof(unsigned int));
+	// index = (unsigned int *)malloc(3 * mesh->triNum * sizeof(unsigned int));
+	meshGLODE->tri = (unsigned int *)malloc(3 * mesh->triNum * sizeof(unsigned int));
+	// if (index == NULL) {
+	// 	return 2;
+	// }
 	
-	dGeomTriMeshDataBuildSingle(meshData, meshGLODE->vert, 3 * sizeof(dReal), 
-								meshGLODE->meshGL->vertNum, meshGLODE->tri,
-		 						3 * meshGLODE->meshGL->triNum, 3 * sizeof(unsigned int));
+	for (i = 0; i < 3 * mesh->triNum; i++){
+		// index[i] = mesh->tri[i];
+		meshGLODE->tri[i] = mesh->tri[i];
+	}
+	// meshGLODE->tri = index;
+	
+
+	dTriMeshDataID meshData = dGeomTriMeshDataCreate();
+	dGeomTriMeshDataBuildSimple (meshData, meshGLODE->vert, mesh->vertNum, meshGLODE->tri, 3 * mesh->triNum);
 	meshGLODE->geom = dCreateTriMesh(space, meshData, 0, 0, 0); 
 
 	
