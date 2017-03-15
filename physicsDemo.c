@@ -8,6 +8,8 @@
  * A demo of collision using Open Dynamics Engine
  * change the number of falling objects with NUM_BOUNICES
  * change the number of haystacks with BOX_STACK_LENGTH
+ *
+ * the nearCallBack function is directly copied from http://www.alsprogrammingresource.com/basic_ode.html
  */
 
 
@@ -53,13 +55,10 @@ static dReal stepsize = 0.1;
 #define max_contacts 4
 
 
-
-// ==== scene globals ====
 camCamera cam;
 texTexture texGrass, texSun, texBox, texA, texB, texC;
 shadowProgram sdwProg;
 
-// ground
 meshGLMesh ground_GL, sun_GL;
 sceneNode ground_node, sun_node;
 
@@ -288,14 +287,15 @@ int initializeScene(void) {
 				return 2;
 			}
 		}
+
+		// randomized x and y coordinatesd
 		x = (float)rand()/(float)(RAND_MAX/100) * 2 - 100;
 		y = (float)rand()/(float)(RAND_MAX/100) * 2 - 100;
-		// z = (float)rand()/(float)(RAND_MAX/100);
 		z = 500;
 		dBodySetPosition(bouncies[i].meshGL->body, x, y, z);
 
+		// randomized initial rotations
 		dMatrix3 R;
-
 	    dRFromAxisAndAngle(R, dRandReal() * 2.0 - 1.0,
 	                          dRandReal() * 2.0 - 1.0,
 	                          dRandReal() * 2.0 - 1.0,
@@ -377,7 +377,7 @@ int initializeScene(void) {
 }
 
 void destroyScene(void) {
-	// add destroy stuff 	
+	sceneDestroyRecursively(&ground_node);
 }
 
 /* Returns 0 on success, non-zero on failure. Warning: If initialization fails
@@ -485,29 +485,19 @@ int initializeShaderProgram(void) {
 	return (program == 0);
 }
 
-
+/* function that detects collision between objects. */
+// this function is directly copied from http://www.alsprogrammingresource.com/basic_ode.html
 static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
-
-    // Temporary index for each contact
     int i;
 
-
-   // Get the dynamics body for each geom
     dBodyID b1 = dGeomGetBody(o1);
     dBodyID b2 = dGeomGetBody(o2);
-	//Starting joints preserved if == 1
 	if (dAreConnected(b1, b2) == 1)
 		return;
 
 
-    // Create an array of dContact objects to hold the contact joints
     dContact contact[max_contacts];
 
-
-
-    // Now we set the joint properties of each contact. Going into the full details here would require a tutorial of its
-       // own. I'll just say that the members of the dContact structure control the joint behaviour, such as friction,
-       // velocity and bounciness. See section 7.3.7 of the ODE manual and have fun experimenting to learn more.  
     for (i = 0; i < max_contacts; i++) {
         contact[i].surface.mode = dContactBounce;
         contact[i].surface.mu = dInfinity;
@@ -516,25 +506,17 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
         contact[i].surface.bounce_vel = 0.1;
     }
 
-
-
-    // Here we do the actual collision test by calling dCollide. It returns the number of actual contact points or zero
-       // if there were none. As well as the geom IDs, max number of contacts we also pass the address of a dContactGeom
-       // as the fourth parameter. dContactGeom is a substructure of a dContact object so we simply pass the address of
-       // the first dContactGeom from our array of dContact objects and then pass the offset to the next dContactGeom
-       // as the fifth paramater, which is the size of a dContact structure. That made sense didn't it?  
     if (int numc = dCollide(o1, o2, max_contacts, &contact[0].geom, sizeof(dContact))) {
-        // To add each contact point found to our joint group we call dJointCreateContact which is just one of the many
-           // different joint types available.  
         for (i = 0; i < numc; i++) {
-            // dJointCreateContact needs to know which world and joint group to work with as well as the dContact
-               // object itself. It returns a new dJointID which we then use with dJointAttach to finally create the
-               // temporary contact joint between the two geom bodies.
             dJointID c = dJointCreateContact(world, contactgroup, contact + i);
             dJointAttach(c, b1, b2);
         }
     }
 }
+
+/* utility function that handles out-of-bounds reset for each node and 
+   also updates the position of the nodes to reflect on the position of the
+   bodies in the physics simulation*/
 void nodeUpdateTransRot(sceneNode* node) {
 	const dReal *pos = dBodyGetPosition(node->meshGL->body);
 	const dReal *rot = dBodyGetRotation(node->meshGL->body);
@@ -591,6 +573,19 @@ void nodeUpdateTransRot(sceneNode* node) {
 
 void render(void) {
 
+	// before anything is drawn, update the node's position
+	nodeUpdateTransRot(&ground_node);
+	nodeUpdateTransRot(&sun_node);
+	int i;
+	for (i = 0; i <NUM_BOXES; i++) {
+		nodeUpdateTransRot(&boxNodes[i]);
+	}
+	for (i = 0; i < NUM_BOUNCIES; i ++) {
+		nodeUpdateTransRot(&bouncies[i]);
+	}
+
+
+
 	GLdouble identity[4][4];
 	mat44Identity(identity);
 
@@ -625,16 +620,7 @@ void render(void) {
 	sceneRender(&ground_node, identity, modelingLoc, 1, unifDims, unifLocs, 0, textureLocs);
 	shadowUnrender(GL_TEXTURE7);
 
-	//ODE simulation step
-	nodeUpdateTransRot(&ground_node);
-	nodeUpdateTransRot(&sun_node);
-	int i;
-	for (i = 0; i <NUM_BOXES; i++) {
-		nodeUpdateTransRot(&boxNodes[i]);
-	}
-	for (i = 0; i < NUM_BOUNCIES; i ++) {
-		nodeUpdateTransRot(&bouncies[i]);
-	}
+	
 }
 void startODE(void){
 	dInitODE2(0);
@@ -642,8 +628,7 @@ void startODE(void){
 	// space = dHashSpaceCreate(0); // come back to this later maybe
 	space = dSimpleSpaceCreate(0);
 	contactgroup = dJointGroupCreate(0);
-	dWorldSetGravity(world, 0.0, 0.0, 3 * -9.81);
-	// dWorldSetGravity(world, 0.0, 0.0, -0.0);
+	dWorldSetGravity(world, 0.0, 0.0, -9.81);
 	dWorldSetContactSurfaceLayer(world, 0.001);
 	//error correction parameters. Sets the world to double-precision
 	dWorldSetERP(world, 0.3);

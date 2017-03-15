@@ -40,13 +40,6 @@ resources backing the mesh, etc. */
 void sceneDestroy(sceneNode *node) {
 	if (node->unif != NULL)
 		free(node->unif);
-<<<<<<< HEAD
-  // //free up the vert and tri pointers
-  //   free(node->meshGL->vert);
-  //   free(node->meshGL->tri);
-		//destroy the meshGL within node
-=======
->>>>>>> f49c1c6990edd43c2732f5604f7747b44cc2fca1
     meshGLDestroy(node->meshGL);
 	node->unif = NULL;
 }
