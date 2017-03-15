@@ -1,0 +1,1 @@
+clang++ 500openGLODE.c -lglfw -lode -framework OpenGL
