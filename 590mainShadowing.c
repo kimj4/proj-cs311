@@ -37,6 +37,7 @@ static dReal radius = 0.25;
 static dReal length = 1.0;
 static dReal density = 5.0;
 static dReal stepsize = 0.05;
+static dReal setGravity = -9.81;
 #define max_contacts 20
 
 
@@ -367,7 +368,25 @@ int initializeScene(void) {
 }
 
 void destroyScene(void) {
-	// add destroy stuff 	
+	// add destroy stuff 
+	sceneDestroy(&nodeL);
+	sceneDestroy(&wheelFL_node);
+	sceneDestroy(&wheelFR_node);
+	sceneDestroy(&wheelBL_node);
+	sceneDestroy(&wheelBR_node);
+	sceneDestroy(&axelF_node);
+	sceneDestroy(&axelB_node);
+	sceneDestroy(&baseL_node);
+	sceneDestroy(&baseR_node);
+	sceneDestroy(&supportFL_node);
+	sceneDestroy(&supportFR_node);
+	sceneDestroy(&supportBL_node);
+	sceneDestroy(&supportBR_node);
+	sceneDestroy(&cross_node);
+	sceneDestroy(&arm_node);
+	sceneDestroy(&counterweight_node);
+	sceneDestroy(&bucket_node);
+	sceneDestroy(&ground_node);
 }
 
 /* Returns 0 on success, non-zero on failure. Warning: If initialization fails
@@ -777,7 +796,7 @@ void startODE(void){
 	space = dSimpleSpaceCreate(0);
 	contactgroup = dJointGroupCreate(0);
 	trebuchetJointGroup = dJointGroupCreate(100);
-	dWorldSetGravity(world, 0.0, 0.0, -9.81);
+	dWorldSetGravity(world, 0.0, 0.0, setGravity);
 	dWorldSetContactSurfaceLayer(world, 0.001);
 	//error correction parameters. Sets the world to double-precision
 	dWorldSetERP(world, 0.3);
