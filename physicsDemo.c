@@ -43,16 +43,22 @@ static dReal stepsize = 0.1;
 
 // ==== scene globals ====
 camCamera cam;
-texTexture texGrass, texA, texB, texC;
+texTexture texGrass, texSun, texBox, texA, texB, texC;
 shadowProgram sdwProg;
 
 // ground
-meshGLMesh ground_GL;
-sceneNode ground_node;
+meshGLMesh ground_GL, sun_GL;
+sceneNode ground_node, sun_node;
 
-#define NUMNODES 50
-meshGLMesh meshGLs[NUMNODES];
-sceneNode nodes[NUMNODES];
+#define NUM_BOUNCIES 50
+meshGLMesh bouncyGLs[NUM_BOUNCIES];
+sceneNode bouncies[NUM_BOUNCIES];
+
+
+#define BOX_STACK_LENGTH 4
+#define NUM_BOXES BOX_STACK_LENGTH * BOX_STACK_LENGTH * BOX_STACK_LENGTH
+meshGLMesh boxGLs[NUM_BOXES];
+sceneNode boxes[NUM_BOXES];
 
 lightLight light;
 shadowMap sdwMap;
@@ -158,6 +164,12 @@ int initializeScene(void) {
 	if (texInitializeFile(&texGrass, "grass.jpg", GL_LINEAR, GL_LINEAR,
     		GL_REPEAT, GL_REPEAT) != 0)
     	return 1;
+    if (texInitializeFile(&texSun, "sun.jpg", GL_LINEAR, GL_LINEAR,
+    		GL_REPEAT, GL_REPEAT) != 0)
+    	return 1;
+    if (texInitializeFile(&texBox, "box.jpg", GL_LINEAR, GL_LINEAR,
+    		GL_REPEAT, GL_REPEAT) != 0)
+    	return 1;
     if (texInitializeFile(&texA, "a.jpg", GL_LINEAR, GL_LINEAR,
     		GL_REPEAT, GL_REPEAT) != 0)
     	return 1;
@@ -176,26 +188,42 @@ int initializeScene(void) {
 
 
 	int i;
-	int objectDensity = 20;
-	for (i = 0; i < NUMNODES; i ++) {
 
+	// ==== initialize meshGLMeshes for boxes
+	int boxXL = 40;
+	int boxYL = 20;
+	int boxZL = 20;
+	int boxDensity = 100;
+	for (i = 0; i < NUM_BOXES; i ++) {
+		if (meshInitializeBox(&mesh, -boxXL / 2, boxXL / 2, -boxYL / 2, boxYL / 2, -boxZL / 2, boxZL / 2, world, space, boxDensity) != 0) {
+			return 1;
+		}
+		meshGLInitialize(&boxGLs[i], &mesh, 3, attrDims, vaoNums);
+		meshGLVAOInitialize(&boxGLs[i], 0, attrLocs);
+		meshGLVAOInitialize(&boxGLs[i], 1, sdwProg.attrLocs);
+		meshDestroy(&mesh);
+	}
+
+	// ==== initialize mesGLMeshes for bouncies
+	int objectDensity = 20;
+	for (i = 0; i < NUM_BOUNCIES; i ++) {
 		switch(i % 3) {
 			case(0): {
 				if (meshInitializeBox(&mesh, -10.0, 10.0, -10.0, 10.0, -10.0, 10.0, world, space, objectDensity) != 0) {
 					return 1;
 				}
-				meshGLInitialize(&meshGLs[i], &mesh, 3, attrDims, vaoNums);
-				meshGLVAOInitialize(&meshGLs[i], 0, attrLocs);
-				meshGLVAOInitialize(&meshGLs[i], 1, sdwProg.attrLocs);
+				meshGLInitialize(&bouncyGLs[i], &mesh, 3, attrDims, vaoNums);
+				meshGLVAOInitialize(&bouncyGLs[i], 0, attrLocs);
+				meshGLVAOInitialize(&bouncyGLs[i], 1, sdwProg.attrLocs);
 				meshDestroy(&mesh);
 				break;
 			} case (1): {
 				if (meshInitializeSphere(&mesh, 10.0, 10, 10, world, space, objectDensity) != 0) {
 					return 1;
 				}
-				meshGLInitialize(&meshGLs[i], &mesh, 3, attrDims, vaoNums);
-				meshGLVAOInitialize(&meshGLs[i], 0, attrLocs);
-				meshGLVAOInitialize(&meshGLs[i], 1, sdwProg.attrLocs);
+				meshGLInitialize(&bouncyGLs[i], &mesh, 3, attrDims, vaoNums);
+				meshGLVAOInitialize(&bouncyGLs[i], 0, attrLocs);
+				meshGLVAOInitialize(&bouncyGLs[i], 1, sdwProg.attrLocs);
 				meshDestroy(&mesh);
 				break;
 			} case (2): {
@@ -205,9 +233,9 @@ int initializeScene(void) {
 				// if (meshInitializeSphere(&mesh, 20.0, 20, 20, world, space, objectDensity) != 0) {
 				// 	return 1;
 				// }
-				meshGLInitialize(&meshGLs[i], &mesh, 3, attrDims, vaoNums);
-				meshGLVAOInitialize(&meshGLs[i], 0, attrLocs);
-				meshGLVAOInitialize(&meshGLs[i], 1, sdwProg.attrLocs);
+				meshGLInitialize(&bouncyGLs[i], &mesh, 3, attrDims, vaoNums);
+				meshGLVAOInitialize(&bouncyGLs[i], 0, attrLocs);
+				meshGLVAOInitialize(&bouncyGLs[i], 1, sdwProg.attrLocs);
 				meshDestroy(&mesh);
 				break;
 			} default: {
@@ -216,15 +244,57 @@ int initializeScene(void) {
 			}
 		}	
 	}
-
 	dReal x, y, z;
-	for (i = NUMNODES - 1; i >= 0 ; i --) { // build nodes in reverse order (because of children issues)
-		if (i != NUMNODES - 1) {
-			if (sceneInitialize(&nodes[i], 3, 1, &meshGLs[i], NULL, &nodes[i + 1], world) != 0) {
+	// ==== initialize scenes for boxes
+	int boxIdx = 0;
+	x = 0;
+	y = 0;
+	z = 0;
+	for (i = NUM_BOXES - 1; i >= 0; i --) {
+		if (i != NUM_BOXES - 1) {
+			if (sceneInitialize(&boxes[i], 3, 1, &boxGLs[i], NULL, &boxes[i + 1], world) != 0) {
+				return 2;
+			}
+		} else {
+			if (sceneInitialize(&boxes[i], 3, 1, &boxGLs[i], NULL, NULL, world) != 0) {
+				return 2;
+			}
+		}
+		dBodySetPosition(boxes[i].meshGL->body, x, y, z);
+		x = x + boxXL;
+		if (i % BOX_STACK_LENGTH == 0) {
+			x = 0;
+			y = y + boxYL;
+		}
+		if (i % (BOX_STACK_LENGTH * BOX_STACK_LENGTH) == 0) {
+			y = 0;
+			z = z + boxZL;
+		}
+
+	}
+	// int l,m,n;
+	// for (l = 0; l < BOX_STACK_LENGTH; l++) {
+	// 	for (m = 0; m < BOX_STACK_LENGTH; m++) {
+	// 		for (n = 0; n < BOX_STACK_LENGTH; n++) {
+				
+	// 			dBodySetPosition(boxes[i].meshGL->body, x, y, z);
+
+	// 			x = x + 20;
+	// 		}
+	// 		y = y + 10;
+	// 	}
+	// 	z = z + 10;
+	// }
+
+
+	// ==== initialize scenes for bouncies
+	for (i = NUM_BOUNCIES - 1; i >= 0 ; i --) { // build bouncies in reverse order (because of children issues)
+		if (i != NUM_BOUNCIES - 1) {
+			if (sceneInitialize(&bouncies[i], 3, 1, &bouncyGLs[i], NULL, &bouncies[i + 1], world) != 0) {
 				return 2;
 			}
 		} else { // last thing in node list is 
-			if (sceneInitialize(&nodes[i], 3, 1, &meshGLs[i], NULL, NULL, world) != 0) {
+			if (sceneInitialize(&bouncies[i], 3, 1, &bouncyGLs[i], NULL, &boxes[0], world) != 0) {
 				return 2;
 			}
 		}
@@ -232,7 +302,7 @@ int initializeScene(void) {
 		y = (float)rand()/(float)(RAND_MAX/100) * 2 - 100;
 		// z = (float)rand()/(float)(RAND_MAX/100);
 		z = 500;
-		dBodySetPosition(nodes[i].meshGL->body, x, y, z);
+		dBodySetPosition(bouncies[i].meshGL->body, x, y, z);
 
 
 
@@ -242,11 +312,22 @@ int initializeScene(void) {
 	                          dRandReal() * 2.0 - 1.0,
 	                          dRandReal() * 2.0 - 1.0,
 	                          dRandReal() * 10.0 - 5.0);
-	    dBodySetRotation(nodes[i].meshGL->body, R);
+	    dBodySetRotation(bouncies[i].meshGL->body, R);
 
 	}
 	
-	// Ground
+	// sun
+	int sunDensity = 10000.0;
+	if (meshInitializeSphere(&mesh, 45, 20, 20, world, space, sunDensity) != 0) {
+		return 1;
+	}
+	meshGLInitialize(&sun_GL, &mesh, 3, attrDims, vaoNums);
+	meshGLVAOInitialize(&sun_GL, 0, attrLocs);
+	meshGLVAOInitialize(&sun_GL, 1, sdwProg.attrLocs);
+	meshDestroy(&mesh);
+
+
+	// ground
 	int groundDensity = 200.0;
 	if (meshInitializeBox(&mesh, -1000.0, 1000.0, -1000.0, 1000.0, -1.0, 1.0, world, space, groundDensity) != 0) {
 		return 1;
@@ -256,35 +337,46 @@ int initializeScene(void) {
 	meshGLVAOInitialize(&ground_GL, 1, sdwProg.attrLocs);
 	meshDestroy(&mesh);
 
-	// if (sceneInitialize(&ground_node, 3, 1, &ground_GL, NULL, &nodes[0], world) != 0)
-	// 	return 2;
-	if (sceneInitialize(&ground_node, 3, 1, &ground_GL, NULL, &nodes[0], world) != 0)
+	if (sceneInitialize(&sun_node, 3, 1, &sun_GL, NULL, &bouncies[0], world) != 0)
+		return 2;
+	if (sceneInitialize(&ground_node, 3, 1, &ground_GL, NULL, &sun_node, world) != 0)
 		return 2;
 
 
     dBodySetKinematic(ground_node.meshGL->body);
+    dBodySetKinematic(sun_node.meshGL->body);
 	x = 0.0;
 	y = 0.0;
 	z = 0.0;
 	dBodySetPosition(ground_node.meshGL->body, x, y, z);
+	z = 495.0;
+	dBodySetPosition(sun_node.meshGL->body, x, y, z);
 
 	texTexture *tex;
 	tex = &texGrass;
 	sceneSetTexture(&ground_node, &tex);
+	tex = &texSun;
+	sceneSetTexture(&sun_node, &tex);
 
-	for (i = 0; i < NUMNODES; i ++) {
+
+	tex = &texBox;
+	for (i = 0; i < NUM_BOXES; i++) {
+		sceneSetTexture(&boxes[i], &tex);
+	}
+
+	for (i = 0; i < NUM_BOUNCIES; i ++) {
 		switch(i % 3) {
 			case(0): {
 				tex = &texA;
-				sceneSetTexture(&nodes[i], &tex);
+				sceneSetTexture(&bouncies[i], &tex);
 				break;
 			} case(1): {
 				tex = &texB;
-				sceneSetTexture(&nodes[i], &tex);
+				sceneSetTexture(&bouncies[i], &tex);
 				break;
 			} case(2): {
 				tex = &texC;
-				sceneSetTexture(&nodes[i], &tex);
+				sceneSetTexture(&bouncies[i], &tex);
 				break;
 			} default: {
 				printf("something went wrong\n");
@@ -559,9 +651,13 @@ void render(void) {
 	//Seriously, no sceneSetTranslation() usage here??
 	// I changed it to handle this operation.
 	nodeUpdateTransRot(&ground_node);
+	nodeUpdateTransRot(&sun_node);
 	int i;
-	for (i = 0; i < NUMNODES; i ++) {
-		nodeUpdateTransRot(&nodes[i]);
+	for (i = 0; i <NUM_BOXES; i++) {
+		nodeUpdateTransRot(&boxes[i]);
+	}
+	for (i = 0; i < NUM_BOUNCIES; i ++) {
+		nodeUpdateTransRot(&bouncies[i]);
 	}
 }
 void startODE(void){
