@@ -182,6 +182,7 @@ uniform information is analogous, but sceneRender loads it, not meshGLRender. */
 void sceneRender(sceneNode *node, GLdouble parent[4][4], GLint modelingLoc,
 		GLuint unifNum, GLuint unifDims[], GLint unifLocs[], GLuint VAOindex, GLint *textureLocs) {
 	int i;
+	// printf("sceneRender\n");
 
 
 	// render the textures (Josh says to assume max of 8 concurrent textures)

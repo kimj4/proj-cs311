@@ -1,0 +1,1 @@
+clang++ physicsDemo.c /usr/local/gl3w/src/gl3w.o -lglfw -lode -framework OpenGL -framework CoreFoundation
