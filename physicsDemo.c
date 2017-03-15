@@ -1,5 +1,19 @@
+/*
+ * physicsDemo.c 
+ * Ju Yun Kim and Dmitri Laing
+ * CS 311
+ * Carleton College
+ * March 2017
+ * Adapted from 590mainShadowing.c by Josh Davis
+ * A demo of collision using Open Dynamics Engine
+ * change the number of falling objects with NUM_BOUNICES
+ * change the number of haystacks with BOX_STACK_LENGTH
+ */
+
+
+
 /* On macOS, compile with...
-    clang 590mainShadowing.c /usr/local/gl3w/src/gl3w.o -lglfw -framework OpenGL -framework CoreFoundation
+	clang++ physicsDemo.c /usr/local/gl3w/src/gl3w.o -lglfw -lode -framework OpenGL -framework CoreFoundation
 */
 
 #include <stdio.h>
@@ -31,7 +45,6 @@ double getTime(void) {
 static dWorldID world;
 static dSpaceID space;
 static dJointGroupID contactgroup;
-static dJointGroupID trebuchetJointGroup;
 static dGeomID ground;
 static dReal radius = 0.25;
 static dReal length = 1.0;
@@ -50,15 +63,15 @@ shadowProgram sdwProg;
 meshGLMesh ground_GL, sun_GL;
 sceneNode ground_node, sun_node;
 
-#define NUM_BOUNCIES 50
+#define NUM_BOUNCIES 75
 meshGLMesh bouncyGLs[NUM_BOUNCIES];
 sceneNode bouncies[NUM_BOUNCIES];
 
 
-#define BOX_STACK_LENGTH 4
+#define BOX_STACK_LENGTH 7
 #define NUM_BOXES BOX_STACK_LENGTH * BOX_STACK_LENGTH * BOX_STACK_LENGTH
 meshGLMesh boxGLs[NUM_BOXES];
-sceneNode boxes[NUM_BOXES];
+sceneNode boxNodes[NUM_BOXES];
 
 lightLight light;
 shadowMap sdwMap;
@@ -158,9 +171,6 @@ midway through, then does not properly deallocate all resources. But that's
 okay, because the program terminates almost immediately after this function
 returns. */
 int initializeScene(void) {
-
-
-	// note: meshInitializeBox requires negative to positive values.
 	if (texInitializeFile(&texGrass, "grass.jpg", GL_LINEAR, GL_LINEAR,
     		GL_REPEAT, GL_REPEAT) != 0)
     	return 1;
@@ -184,12 +194,9 @@ int initializeScene(void) {
 	meshMesh mesh;
 	GLuint attrDims[3] = {3, 2, 3};
 	int vaoNums = 2;
-
-
-
 	int i;
 
-	// ==== initialize meshGLMeshes for boxes
+	// ==== initialize meshGLMeshes for boxNodes
 	int boxXL = 40;
 	int boxYL = 20;
 	int boxZL = 20;
@@ -205,7 +212,7 @@ int initializeScene(void) {
 	}
 
 	// ==== initialize mesGLMeshes for bouncies
-	int objectDensity = 20;
+	int objectDensity = 2000;
 	for (i = 0; i < NUM_BOUNCIES; i ++) {
 		switch(i % 3) {
 			case(0): {
@@ -230,9 +237,6 @@ int initializeScene(void) {
 				if (meshInitializeCapsule(&mesh, 10.0, 30.0, 10, 10, world, space, objectDensity) != 0) {
 					return 1;
 				}
-				// if (meshInitializeSphere(&mesh, 20.0, 20, 20, world, space, objectDensity) != 0) {
-				// 	return 1;
-				// }
 				meshGLInitialize(&bouncyGLs[i], &mesh, 3, attrDims, vaoNums);
 				meshGLVAOInitialize(&bouncyGLs[i], 0, attrLocs);
 				meshGLVAOInitialize(&bouncyGLs[i], 1, sdwProg.attrLocs);
@@ -245,22 +249,22 @@ int initializeScene(void) {
 		}	
 	}
 	dReal x, y, z;
-	// ==== initialize scenes for boxes
+	// ==== initialize scenes for boxNodes
 	int boxIdx = 0;
 	x = 0;
 	y = 0;
 	z = 0;
 	for (i = NUM_BOXES - 1; i >= 0; i --) {
 		if (i != NUM_BOXES - 1) {
-			if (sceneInitialize(&boxes[i], 3, 1, &boxGLs[i], NULL, &boxes[i + 1], world) != 0) {
+			if (sceneInitialize(&boxNodes[i], 3, 1, &boxGLs[i], NULL, &boxNodes[i + 1], world) != 0) {
 				return 2;
 			}
 		} else {
-			if (sceneInitialize(&boxes[i], 3, 1, &boxGLs[i], NULL, NULL, world) != 0) {
+			if (sceneInitialize(&boxNodes[i], 3, 1, &boxGLs[i], NULL, NULL, world) != 0) {
 				return 2;
 			}
 		}
-		dBodySetPosition(boxes[i].meshGL->body, x, y, z);
+		dBodySetPosition(boxNodes[i].meshGL->body, x, y, z);
 		x = x + boxXL;
 		if (i % BOX_STACK_LENGTH == 0) {
 			x = 0;
@@ -272,20 +276,6 @@ int initializeScene(void) {
 		}
 
 	}
-	// int l,m,n;
-	// for (l = 0; l < BOX_STACK_LENGTH; l++) {
-	// 	for (m = 0; m < BOX_STACK_LENGTH; m++) {
-	// 		for (n = 0; n < BOX_STACK_LENGTH; n++) {
-				
-	// 			dBodySetPosition(boxes[i].meshGL->body, x, y, z);
-
-	// 			x = x + 20;
-	// 		}
-	// 		y = y + 10;
-	// 	}
-	// 	z = z + 10;
-	// }
-
 
 	// ==== initialize scenes for bouncies
 	for (i = NUM_BOUNCIES - 1; i >= 0 ; i --) { // build bouncies in reverse order (because of children issues)
@@ -294,7 +284,7 @@ int initializeScene(void) {
 				return 2;
 			}
 		} else { // last thing in node list is 
-			if (sceneInitialize(&bouncies[i], 3, 1, &bouncyGLs[i], NULL, &boxes[0], world) != 0) {
+			if (sceneInitialize(&bouncies[i], 3, 1, &bouncyGLs[i], NULL, &boxNodes[0], world) != 0) {
 				return 2;
 			}
 		}
@@ -303,8 +293,6 @@ int initializeScene(void) {
 		// z = (float)rand()/(float)(RAND_MAX/100);
 		z = 500;
 		dBodySetPosition(bouncies[i].meshGL->body, x, y, z);
-
-
 
 		dMatrix3 R;
 
@@ -361,7 +349,7 @@ int initializeScene(void) {
 
 	tex = &texBox;
 	for (i = 0; i < NUM_BOXES; i++) {
-		sceneSetTexture(&boxes[i], &tex);
+		sceneSetTexture(&boxNodes[i], &tex);
 	}
 
 	for (i = 0; i < NUM_BOUNCIES; i ++) {
@@ -398,8 +386,6 @@ okay, because the program terminates almost immediately after this function
 returns. */
 int initializeCameraLight(void) {
   	GLdouble vec[3] = {0.0, 0.0, 0.0};
-	// camSetControls(&cam, camPERSPECTIVE, M_PI / 6.0, 1000.0, 768.0, 768.0, 1000.0,
-	// 							 M_PI / 4.0, M_PI / 4.0, vec);
 	camSetControls(&cam, camPERSPECTIVE, M_PI / 6.0, 6.0, 1000.0, 1000.0, 1500.0,
 								 M_PI / 4.0, M_PI / 4.0, vec);
 	lightSetType(&light, lightSPOT);
@@ -415,8 +401,6 @@ int initializeCameraLight(void) {
 		return 1;
 	if (shadowMapInitialize(&sdwMap, 1024, 1024) != 0)
 		return 2;
-
-	// camAddDistance(&cam, 1000.0);
 	return 0;
 }
 
@@ -527,8 +511,8 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
     for (i = 0; i < max_contacts; i++) {
         contact[i].surface.mode = dContactBounce;
         contact[i].surface.mu = dInfinity;
-        // contact[i].surface.mu2 = 0.5;
-        contact[i].surface.bounce = 0.9;
+        contact[i].surface.mu2 = 0.5;
+        contact[i].surface.bounce = 0.5;
         contact[i].surface.bounce_vel = 0.1;
     }
 
@@ -556,10 +540,7 @@ void nodeUpdateTransRot(sceneNode* node) {
 	const dReal *rot = dBodyGetRotation(node->meshGL->body);
 	dReal x,y,z;
 	int changed = 0;
-
-		
-		
-		
+	// if some thing goes out of bounds in this scene, put it back in
 	if (pos[0] > 1000 || pos[0] < -1000) {
 		x = (float)rand()/(float)(RAND_MAX/100) * 2 - 100;
 		y = (float)rand()/(float)(RAND_MAX/100) * 2 - 100;
@@ -641,20 +622,15 @@ void render(void) {
 		lightCosLoc);
 	shadowRender(&sdwMap, viewingSdwLoc, GL_TEXTURE7, 7, textureSdwLoc);
 	GLuint unifDims[1] = {3};
-	// sceneRender(&nodeH, identity, modelingLoc, 1, unifDims, unifLocs, 0,
-		// textureLocs);
 	sceneRender(&ground_node, identity, modelingLoc, 1, unifDims, unifLocs, 0, textureLocs);
 	shadowUnrender(GL_TEXTURE7);
 
 	//ODE simulation step
-	
-	//Seriously, no sceneSetTranslation() usage here??
-	// I changed it to handle this operation.
 	nodeUpdateTransRot(&ground_node);
 	nodeUpdateTransRot(&sun_node);
 	int i;
 	for (i = 0; i <NUM_BOXES; i++) {
-		nodeUpdateTransRot(&boxes[i]);
+		nodeUpdateTransRot(&boxNodes[i]);
 	}
 	for (i = 0; i < NUM_BOUNCIES; i ++) {
 		nodeUpdateTransRot(&bouncies[i]);
@@ -666,7 +642,6 @@ void startODE(void){
 	// space = dHashSpaceCreate(0); // come back to this later maybe
 	space = dSimpleSpaceCreate(0);
 	contactgroup = dJointGroupCreate(0);
-	trebuchetJointGroup = dJointGroupCreate(100);
 	dWorldSetGravity(world, 0.0, 0.0, 3 * -9.81);
 	// dWorldSetGravity(world, 0.0, 0.0, -0.0);
 	dWorldSetContactSurfaceLayer(world, 0.001);
@@ -734,16 +709,11 @@ int main(void) {
 		if (floor(newTime) - floor(oldTime) >= 1.0)
 		fprintf(stderr, "main: %f frames/sec\n", 1.0 / (newTime - oldTime));
 
-
-
-
 		dSpaceCollide(space, 0, &nearCallback);
 	
-		// dWorldStep(world, stepsize);
 		dWorldQuickStep(world, stepsize);
 
 		dJointGroupEmpty(contactgroup);
-
 
 		render();
 		glfwSwapBuffers(window);

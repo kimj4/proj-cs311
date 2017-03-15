@@ -32,20 +32,6 @@ int sceneInitialize(sceneNode *node, GLuint unifDim, GLuint texNum,
 	node->meshGL = meshGL;
 	node->firstChild = firstChild;
 	node->nextSibling = nextSibling;
-	
-	// Setting Mass
-	// dReal density = 50.0;
-	// dMass m;
-	// dMassSetZero(&m);
-
- //    if(kinematic == 1){
- //        dBodySetKinematic(node->body);
- //        node->kinematic = 1; }
- //    else{
- //        dMassSetBox(&m, density, 5, 5, 5);
- //        dBodySetMass(node->body, &m);
- //        node->kinematic = 0;
- //    }
     return 0;
 }
 
@@ -54,10 +40,6 @@ resources backing the mesh, etc. */
 void sceneDestroy(sceneNode *node) {
 	if (node->unif != NULL)
 		free(node->unif);
-		// //free up the vert and tri pointers
-  //   free(node->meshGL->vert);
-  //   free(node->meshGL->tri);
-		//destroy the meshGL within node
     meshGLDestroy(node->meshGL);
 	node->unif = NULL;
 }

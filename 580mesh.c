@@ -32,64 +32,6 @@ struct meshGLMesh {
 };
 
 
-// typedef struct meshGLODE meshGLODE;
-// struct meshGLODE {
-// 	int *tri;      //array of int indices
-// 	dReal *vert;   //array of dReal vertices
-// 	dGeomID geom;
-// 	meshGLMesh *meshGL;
-// };
-
-/*Blades: altered arrays to be used with dGeomTriMeshDataBuildSimple().
-The other dGeomTriMeshDataCreate functions should work now as well.
-Using dTriCallback within nearCallBack could prevent trimesh types from
-colliding unnecessarily with each other. Further practice and troubleshooting
-necessary.
-*/
-// int meshGLODEInitialize(meshGLODE *meshGLODE, meshGLMesh *meshGL, meshMesh *mesh, dSpaceID space) {
-// 	meshGLODE->meshGL = meshGL;
-
-	
-// 	int i;
-// 	const dReal *verts;
-// 	verts = (dReal *)malloc(mesh->vertNum * sizeof(dReal));
-// 	// meshGLODE->vert = (dReal *)malloc(mesh->vertNum * sizeof(dReal));
-// 	if (verts == NULL)
-// 		return 1;
-	
-// 	for (i = 0; i < mesh->vertNum; i++){
-// 		verts[i] = mesh->vert[i];
-// 		// meshGLODE->vert[i] = mesh->vert[i];
-// 	}
-
-// 	meshGLODE->vert = verts;
-
-// 	const int *index;
-
-// 	// index = (unsigned int *)malloc(mesh->triNum * meshGL->attrNum * sizeof(unsigned int));
-// 	index = (unsigned int *)malloc(3 * mesh->triNum * sizeof(unsigned int));
-// 	// meshGLODE->tri = (unsigned int *)malloc(3 * mesh->triNum * sizeof(unsigned int));
-// 	if (index == NULL) {
-// 		return 2;
-// 	}
-	
-// 	for (i = 0; i < 3 * mesh->triNum; i++){
-// 		index[i] = mesh->tri[i];
-// 		// meshGLODE->tri[i] = mesh->tri[i];
-// 	}
-// 	meshGLODE->tri = index;
-	
-
-// 	dTriMeshDataID meshData = dGeomTriMeshDataCreate();
-// 	dGeomTriMeshDataBuildSimple (meshData, meshGLODE->vert, mesh->vertNum, meshGLODE->tri, mesh->triNum);
-//  dGeomTriMeshDataBuildSingle (meshData, meshGLODE->vert, 3*sizeof(dReal), mesh->vertNum, meshGLODE->tri, 3 * mesh->triNum, 3*sizeof(int));
-// 	// dGeomTriMeshDataBuildDouble (meshData, meshGLODE->vert, 3*sizeof(dReal), mesh->vertNum, meshGLODE->tri, 3 * mesh->triNum, 3*sizeof(int));
-// 	meshGLODE->geom = dCreateTriMesh(space, meshData, 0, 0, 0); 
-
-	
-// 	return 0;
-// }
-
 /* Initializes a mesh with enough memory to hold its triangles and vertices.
 Does not actually fill in those triangles or vertices with useful data. When
 you are finished with the mesh, you must call meshDestroy to deallocate its
