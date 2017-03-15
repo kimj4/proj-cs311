@@ -31,14 +31,15 @@ double getTime(void) {
 static dWorldID world;
 static dSpaceID space;
 static dJointGroupID contactgroup;
+static dJointGroupID trebuchetJointGroup;
 static dGeomID ground;
 static dReal radius = 0.25;
 static dReal length = 1.0;
 static dReal density = 5.0;
-
+static dReal stepsize = 0.05;
 #define max_contacts 20
 
-dJointGroupID trebuchetJointGroup;
+
 
 
 // dContact contact[max_contacts];
@@ -481,8 +482,8 @@ int initializeShaderProgram(void) {
 // static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
 // 	printf("%p\n", o1);
 // 	printf("%p\n", o2);
-// 	dBodyID b1 = dGeomGetBody(o1);
-// 	dBodyID b2 = dGeomGetBody(o2);
+	// dBodyID b1 = dGeomGetBody(o1);
+	// dBodyID b2 = dGeomGetBody(o2);
 
 // 	dContact contact[max_contacts];
 
@@ -560,6 +561,9 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2)
 
     dBodyID b2 = dGeomGetBody(o2);
 
+	//Starting joints preserved if == 1
+	if (dAreConnected(b1, b2) == 1)
+		return;
 
 
     // Create an array of dContact objects to hold the contact joints
@@ -673,10 +677,13 @@ void render(void) {
 
 	//ODE simulation step
 	
-
+	//Seriously, no sceneSetTranslation() usage here??
+	// I changed it to handle this operation.
 
 	const dReal *pos1 = dBodyGetPosition(nodeL.meshGL->body);
-   	nodeL.translation[0] = pos1[0];
+   	/*Test and should work
+	sceneSetTranslation(&nodeL, pos1); */
+	nodeL.translation[0] = pos1[0];
    	nodeL.translation[1] = pos1[1];
 	nodeL.translation[2] = pos1[2];
 
@@ -772,7 +779,9 @@ void startODE(void){
 	trebuchetJointGroup = dJointGroupCreate(100);
 	dWorldSetGravity(world, 0.0, 0.0, -9.81);
 	dWorldSetContactSurfaceLayer(world, 0.001);
-
+	//error correction parameters. Sets the world to double-precision
+	dWorldSetERP(world, 0.3);
+	dWorldSetCFM(world, (dReal) pow(1,-10) );
 	ground = dCreatePlane(space, 0.0, 0.0, 1.0, 0.0);
 	
 }
@@ -781,11 +790,6 @@ void startODE(void){
 int main(void) {
 	//moved ODE setup into funct
 	startODE();
-    //Getting a strange "Bad arguments in dBodySetMass" error
-//    dMass m;
-//    dMassSetZero(&m);
-//    dMassSetBox(&m, density, 5, 5, 5);
-//    dBodySetMass(nodeL.body, &m);
    
     
 	double oldTime;
@@ -845,7 +849,7 @@ int main(void) {
 		dSpaceCollide(space, 0, &nearCallback);
 	
 		// dWorldStep(world, 0.5);
-		dWorldQuickStep(world, 0.05);
+		dWorldQuickStep(world, stepsize);
 
 		dJointGroupEmpty(contactgroup);
 
@@ -862,6 +866,7 @@ int main(void) {
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	dWorldDestroy(world);
+	dSpaceDestroy(space);
 	dCloseODE();
 	return 0;
 }

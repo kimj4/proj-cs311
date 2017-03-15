@@ -94,7 +94,7 @@ void sceneSetRotation(sceneNode *node, const dReal *rot[3][3]) {
 
 /* Sets the node's translation. */
 //Changed GLdouble to dReal
-void sceneSetTranslation(sceneNode *node, GLdouble transl[3]) {
+void sceneSetTranslation(sceneNode *node, const dReal transl[3]) {
 	node->translation[0] = (GLdouble) transl[0];
 	node->translation[1] = (GLdouble) transl[1];
 	node->translation[2] = (GLdouble) transl[2];
