@@ -32,20 +32,6 @@ int sceneInitialize(sceneNode *node, GLuint unifDim, GLuint texNum,
 	node->meshGL = meshGL;
 	node->firstChild = firstChild;
 	node->nextSibling = nextSibling;
-	
-	// Setting Mass
-	// dReal density = 50.0;
-	// dMass m;
-	// dMassSetZero(&m);
-
- //    if(kinematic == 1){
- //        dBodySetKinematic(node->body);
- //        node->kinematic = 1; }
- //    else{
- //        dMassSetBox(&m, density, 5, 5, 5);
- //        dBodySetMass(node->body, &m);
- //        node->kinematic = 0;
- //    }
     return 0;
 }
 
@@ -54,10 +40,13 @@ resources backing the mesh, etc. */
 void sceneDestroy(sceneNode *node) {
 	if (node->unif != NULL)
 		free(node->unif);
+<<<<<<< HEAD
   // //free up the vert and tri pointers
   //   free(node->meshGL->vert);
   //   free(node->meshGL->tri);
 		//destroy the meshGL within node
+=======
+>>>>>>> f49c1c6990edd43c2732f5604f7747b44cc2fca1
     meshGLDestroy(node->meshGL);
 	node->unif = NULL;
 }
@@ -182,6 +171,7 @@ uniform information is analogous, but sceneRender loads it, not meshGLRender. */
 void sceneRender(sceneNode *node, GLdouble parent[4][4], GLint modelingLoc,
 		GLuint unifNum, GLuint unifDims[], GLint unifLocs[], GLuint VAOindex, GLint *textureLocs) {
 	int i;
+	// printf("sceneRender\n");
 
 
 	// render the textures (Josh says to assume max of 8 concurrent textures)

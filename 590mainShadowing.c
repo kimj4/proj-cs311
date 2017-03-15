@@ -36,26 +36,22 @@ static dGeomID ground;
 static dReal radius = 0.25;
 static dReal length = 1.0;
 static dReal density = 5.0;
+<<<<<<< HEAD
 static dReal stepsize = 0.05;
 static dReal setGravity = -9.81;
+=======
+static dReal stepsize = 0.01;
+>>>>>>> f49c1c6990edd43c2732f5604f7747b44cc2fca1
 #define max_contacts 20
 
 
 
-
-// dContact contact[max_contacts];
-
 // ==== scene globals ====
 camCamera cam;
-texTexture texH, texV, texTrebuchet;
-meshGLMesh meshGLL;
-sceneNode nodeL;
+texTexture texH, texTrebuchet;
 shadowProgram sdwProg;
 
 // trebuchet 
-// 		  axelF_GLODE, axelB_GLODE, baseL_GLODE, baseR_GLODE,
-// 		  supportFL_GLODE, supportFR_GLODE, supportBL_GLODE, supportBR_GLODE,
-// 		  cross_GLODE, arm_GLODE, counterweight_GLODE, bucket_GLODE;
 meshGLMesh wheelFL_GL, wheelFR_GL, wheelBL_GL, wheelBR_GL,
 		  axelF_GL, axelB_GL, baseL_GL, baseR_GL,
 		  supportFL_GL, supportFR_GL, supportBL_GL, supportBR_GL,
@@ -107,9 +103,9 @@ void handleKey(GLFWwindow *window, int key, int scancode, int action, int mods) 
 		else if (key == GLFW_KEY_K)
 			camAddPhi(&cam, 0.1);
 		else if (key == GLFW_KEY_U)
-			camAddDistance(&cam, -0.5);
+			camAddDistance(&cam, -10.5);
 		else if (key == GLFW_KEY_J)
-			camAddDistance(&cam, 5.0);
+			camAddDistance(&cam, 10.0);
 		else if (key == GLFW_KEY_Y) {
 			GLdouble vec[3];
 			vecCopy(3, light.translation, vec);
@@ -131,9 +127,36 @@ void handleKey(GLFWwindow *window, int key, int scancode, int action, int mods) 
 			vecCopy(3, light.translation, vec);
 			vec[0] -= 1.0;
 			lightSetTranslation(&light, vec);
+		} else if (key == GLFW_KEY_1) {
+			dReal curGravity[3];
+			dWorldGetGravity(world, curGravity);
+			dWorldSetGravity(world, curGravity[0], curGravity[1], -9.81);
+		} else if (key == GLFW_KEY_2) {
+			dReal curGravity[3];
+			dWorldGetGravity(world, curGravity);
+			dWorldSetGravity(world, curGravity[0], curGravity[1], 9.81);
+		} else if (key == GLFW_KEY_3) {
+			dReal curGravity[3];
+			dWorldGetGravity(world, curGravity);
+			dWorldSetGravity(world, -5, curGravity[1], curGravity[2]);
+		} else if (key == GLFW_KEY_4) {
+			dReal curGravity[3];
+			dWorldGetGravity(world, curGravity);
+			dWorldSetGravity(world, 5, curGravity[1], curGravity[2]);
+		} else if (key == GLFW_KEY_5) {
+			dReal curGravity[3];
+			dWorldGetGravity(world, curGravity);
+			dWorldSetGravity(world, curGravity[0], -5, curGravity[2]);
+		} else if (key == GLFW_KEY_6) {
+			dReal curGravity[3];
+			dWorldGetGravity(world, curGravity);
+			dWorldSetGravity(world, curGravity[0], 5, curGravity[2]);
 		}
 	}
 }
+
+
+
 
 /* Returns 0 on success, non-zero on failure. Warning: If initialization fails
 midway through, then does not properly deallocate all resources. But that's
@@ -144,9 +167,6 @@ int initializeScene(void) {
 	if (texInitializeFile(&texH, "grass.jpg", GL_LINEAR, GL_LINEAR,
     		GL_REPEAT, GL_REPEAT) != 0)
     	return 1;
-	if (texInitializeFile(&texV, "granite.jpg", GL_LINEAR, GL_LINEAR,
-			GL_REPEAT, GL_REPEAT) != 0)
-		return 2;
 	if (texInitializeFile(&texTrebuchet, "lumber.jpg", GL_LINEAR, GL_LINEAR,
 			GL_REPEAT, GL_REPEAT) != 0)
 		return 2;
@@ -158,7 +178,7 @@ int initializeScene(void) {
 
 	// ======================= start trebuchet construction =======================
 	// crossbar: the thing that holds the throwing arm
-	GLdouble tu = 10; // trebuchet unit
+	GLdouble tu = 5; // trebuchet unit
 	int trebuchetBodyDensity = 20;
 	if (meshInitializeBox(&mesh, -1.0 * tu, 1.0 * tu, -0.25 * tu, 0.25 * tu, -0.25 * tu, 0.25 * tu, world, space, trebuchetBodyDensity) != 0)
 		return 999;
@@ -222,7 +242,7 @@ int initializeScene(void) {
 	meshGLVAOInitialize(&counterweight_GL, 0, attrLocs);
 	meshGLVAOInitialize(&counterweight_GL, 1, sdwProg.attrLocs);
 	meshDestroy(&mesh);		
-// 	// ======================= end trebuchet construction =========================
+	// ======================= end trebuchet construction =========================
 	
 	// Ground
 	int groundDensity = 200.0;
@@ -234,21 +254,19 @@ int initializeScene(void) {
 	meshGLVAOInitialize(&ground_GL, 1, sdwProg.attrLocs);
 	meshDestroy(&mesh);
 
-	// test object
-	int testObjectDensity = 250.0;
-	// if (meshInitializeBox(&mesh, -10.0, 10.0, -10.0, 10.0, -10.0, 10.0) != 0)
-	// 	return 11;
-	if (meshInitializeSphere(&mesh, 5, 20, 20, world, space, testObjectDensity) != 0) {
-		return 2;
-	}
-	meshGLInitialize(&meshGLL, &mesh, 3, attrDims, vaoNums);
-	meshGLVAOInitialize(&meshGLL, 0, attrLocs);
-	meshGLVAOInitialize(&meshGLL, 1, sdwProg.attrLocs);
-	meshDestroy(&mesh);
+	if (sceneInitialize(&counterweight_node, 3, 1, &counterweight_GL, NULL, NULL, world) != 0)
+		return 1;	
 
+	if (sceneInitialize(&arm_node, 3, 1, &arm_GL, NULL, &counterweight_node, world) != 0)
+		return 1;	
 
+	if (sceneInitialize(&baseR_node, 3, 1, &baseR_GL, NULL, &arm_node, world) != 0)
+		return 1;
 
-	if (sceneInitialize(&supportBR_node, 3, 1, &supportBR_GL, NULL, NULL, world) != 0)
+	if (sceneInitialize(&baseL_node, 3, 1, &baseL_GL, NULL, &baseR_node, world) != 0)
+		return 1;	
+
+	if (sceneInitialize(&supportBR_node, 3, 1, &supportBR_GL, NULL, &baseL_node, world) != 0)
 		return 1;
 
 	if (sceneInitialize(&supportBL_node, 3, 1, &supportBL_GL, NULL, &supportBR_node, world) != 0)
@@ -263,32 +281,20 @@ int initializeScene(void) {
 	if (sceneInitialize(&cross_node, 3, 1, &cross_GL, NULL, &supportFL_node, world) != 0)
 		return 1;
 
-	if (sceneInitialize(&nodeL, 3, 1, &meshGLL, NULL, &cross_node, world) != 0)
-		return 1;
-
-	if (sceneInitialize(&ground_node, 3, 1, &ground_GL, NULL, &nodeL, world) != 0)
+	if (sceneInitialize(&ground_node, 3, 1, &ground_GL, NULL, &cross_node, world) != 0)
 		return 2;
 	
-
-	// // test code to see if boxes work over trimeshes
-
-	// dReal density = 25.0;
-	// dMass m1;
-	// dMassSetSphere(&m1, density, 5.0);
-	// // dMassSetBox(&m1, density, 20.0, 20.0, 20.0);
-
- //    dBodySetMass(nodeL.body, &m1);
-
-
- //    dReal density2 = 1000;
-	// dMass m2;
-	// dMassSetBox(&m2, density2, 200.0, 200.0, 2.0);
- //    dBodySetMass(ground_node.body, &m2);
 
     dBodySetKinematic(ground_node.meshGL->body);
 
 
 
+	// GLdouble axis[3] = {0.0, 0.0, 0.0}; // rotate a thing about the z axis
+	// GLdouble rot[3][3];
+	// mat33AngleAxisRotation(M_PI / 2, axis, rot);
+	// const dReal rotODE[9] = {rot[0][0], rot[0][1], rot[0][2],
+	// 						 rot[1][0], rot[1][1], rot[1][2],
+	// 						 rot[2][0], rot[2][1], rot[2][2]};
 
 
 
@@ -298,42 +304,56 @@ int initializeScene(void) {
 	y = 0.0;
 	z = 0.0;
 	dBodySetPosition(ground_node.meshGL->body, x, y, z);
-
-	x = 20.0;
-	y = 20.0;
-	z = 5.0;
-	dBodySetPosition(nodeL.meshGL->body, x, y, z);
-	y = 25;
+	x = 0.0;
+	y = 0.0;
+	z = 10.0;
 	dBodySetPosition(cross_node.meshGL->body, x, y, z);
-	y = 30;
+	x = x + 25;
+	y = y + 8;
+	z = z + 0;
 	dBodySetPosition(supportBL_node.meshGL->body, x, y, z);
-	y = 35;
+
+
+
+	dBodySetRotation(cross_node.meshGL->body, rotODE);
+
+	y = -200;
+	y = y + 5;
+	z = z + 5;
 	dBodySetPosition(supportBR_node.meshGL->body, x, y, z);
-	y = 40;
+	y = y + 5;
+	z = z + 5;
 	dBodySetPosition(supportFL_node.meshGL->body, x, y, z);
-	y = 45;
+	y = y + 5;
+	z = z + 5;
 	dBodySetPosition(supportFR_node.meshGL->body, x, y, z);
+	y = y + 5;
+	z = z + 5;
+	dBodySetPosition(baseL_node.meshGL->body, x, y, z);
+	y = y + 5;
+	z = z + 5;
+	dBodySetPosition(baseR_node.meshGL->body, x, y, z);
+	y = y + 5;
+	z = z + 5;
+	dBodySetPosition(arm_node.meshGL->body, x, y, z);
+	y = y + 5;
+	z = z + 5;
+	dBodySetPosition(counterweight_node.meshGL->body, x, y, z);
 
-
-	// x = 25.0;
-	// y = 15.0;
-	// z = 0.0;
-	// dBodySetPosition(cross_node.meshGL->body, x, y, z);
-
-	// x = 0.0;
-	// y = 20.0;
-	// z = 0.0;
-	// dBodySetPosition(supportFL_node.meshGL->body, x, y, z);
 
 	// dContact contact[max_contacts];
 	// dContact contact2[max_contacts];
-	
-	// if (int numc = dCollide(cross_node.meshGL->geom, supportFL_node.meshGL->geom, max_contacts, &contact[0].geom, sizeof(dContact))) {
-	// 	printf("%i\n", numc);
+	// dJointID testjoint = dJointCreateFixed(world, trebuchetJointGroup);
+	// dJointAttach(testjoint, supportBL_node.meshGL->body, cross_node.meshGL->body);
+	// if (int numc = dCollide(cross_node.meshGL->geom, supportBL_node.meshGL->geom, max_contacts, &contact[0].geom, sizeof(dContact))) {
+	// 	printf(" ====== %i\n", numc);
 	// 	int i;
 	// 	for (i = 0; i < numc; i ++) {
+
 	// 		dJointID c = dJointCreateContact(world, trebuchetJointGroup, contact + i);
-	//     	dJointAttach(c, cross_node.meshGL->body, supportFL_node.meshGL->body);
+	// 		dJointSetFixed(c);
+	//     	dJointAttach(c, cross_node.meshGL->body, supportBL_node.meshGL->body);
+	    	
 	//     }
 	// }
 
@@ -346,11 +366,6 @@ int initializeScene(void) {
 	//     }
 	// }
 
-	
-
-	// dBodySetTorque(nodeL.body, 100.0, 0.0, 0.0);
-	// dBodySetForce(nodeL.meshGL->body, 20.0, 0.0, 0.0);
-
 	texTexture *tex;
 	tex = &texTrebuchet;
 	sceneSetTexture(&cross_node, &tex);
@@ -358,8 +373,11 @@ int initializeScene(void) {
 	sceneSetTexture(&supportFR_node, &tex);
 	sceneSetTexture(&supportBL_node, &tex);
 	sceneSetTexture(&supportBR_node, &tex);
-	tex = &texV;
-	sceneSetTexture(&nodeL, &tex);
+	sceneSetTexture(&baseL_node, &tex);
+	sceneSetTexture(&baseR_node, &tex);
+	sceneSetTexture(&arm_node, &tex);
+	sceneSetTexture(&counterweight_node, &tex);
+
 	tex = &texH;
 	sceneSetTexture(&ground_node, &tex);
 
@@ -495,79 +513,7 @@ int initializeShaderProgram(void) {
 }
 
 
-
-
-// //Collision Detection from the manual
-// static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
-// 	printf("%p\n", o1);
-// 	printf("%p\n", o2);
-	// dBodyID b1 = dGeomGetBody(o1);
-	// dBodyID b2 = dGeomGetBody(o2);
-
-// 	dContact contact[max_contacts];
-
-// 	// colliding two non-space geoms, so generate contact points between o1 and o2
-// 	int num_contact = dCollide(o1, o2, max_contacts, &contact[0].geom, sizeof(dContact));
-// 	// printf("num_contact: %i\n", num_contact);
-// 	int i;
-
-// 	 for (i = 0; i < max_contacts; i++) {
-// 		contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
-// 		// contact[i].surface.mode = dContactSoftERP | dContactBounce;
-// 		// contact[i].surface.mode = dContactBounce;
-// 		contact[i].surface.mu = dInfinity;
-// 		contact[i].surface.soft_cfm = 1e-8;
-// 		contact[i].surface.soft_erp = 0.0;
-// 		contact[i].surface.bounce = 0.25;
-// 		contact[i].surface.bounce_vel = 0.1;
-// 	}
-
-//     if (num_contact > 0){
-// 		if ((o1 == ground) || (o2 == ground)) {
-// 			printf("1\n");
-// 			for(i = 0; i < num_contact; i++) {
-// 				// printf("there\n");
-// 				// contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactApprox1;
-// 				contact[i].surface.mode = dContactSoftERP | dContactApprox1;
-// 				contact[i].surface.mu = 0.5;
-// 				// contact[i].surface.soft_cfm = 1e-8;
-// 				contact[i].surface.soft_erp = 1.0;
-// 				contact[i].surface.bounce = 0.9;
-// 				contact[i].surface.bounce_vel = 0.9;
-// 				dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
-// 				dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));              
-// 			}
-// 		}
-//         else {
-//         	printf("here\n");
-//             for (i = 0; i < num_contact; i++) {
-// 				// contact[i].surface.mode = dContactSoftCFM | dContactSoftERP | dContactBounce;
-// 				// contact[i].surface.mode = dContactSoftERP | dContactBounce;
-// 				contact[i].surface.mode = dContactBounce;
-// 				contact[i].surface.mu = dInfinity;
-// 				// contact[i].surface.soft_cfm = 1e-8;
-// 				// contact[i].surface.soft_erp = 1.0;
-// 				contact[i].surface.bounce = 0.25;
-// 				contact[i].surface.bounce_vel = 0.1;
-// 			}
-//         }
-//         for (i = 0; i < num_contact; i++) {
-// 			dJointID con = dJointCreateContact(world, contactgroup, &contact[i]);
-// 			dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
-// 		}
-// 		// for (i = 0; i < num_contact; i++) {
-// 		// 	dJointID con = dJointCreateContact(world, contactgroup, contact + i);
-// 		// 	// dJointAttach(con, dGeomGetBody(contact[i].geom.g1), dGeomGetBody(contact[i].geom.g2));
-// 		// 	dJointAttach(con, b1, b2);
-// 		// }
-// 	}
-//     return;
-// }
-
-
-static void nearCallback (void *data, dGeomID o1, dGeomID o2)
-
-{
+static void nearCallback (void *data, dGeomID o1, dGeomID o2) {
 
     // Temporary index for each contact
 
@@ -597,9 +543,7 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2)
 
        // velocity and bounciness. See section 7.3.7 of the ODE manual and have fun experimenting to learn more.  
 
-    for (i = 0; i < max_contacts; i++)
-
-    {
+    for (i = 0; i < max_contacts; i++) {
 
         contact[i].surface.mode = dContactBounce;
 
@@ -607,7 +551,7 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2)
 
         // contact[i].surface.mu2 = 0.5;
 
-        contact[i].surface.bounce = 0.5;
+        contact[i].surface.bounce = 0.3;
 
         contact[i].surface.bounce_vel = 0.1;
 
@@ -625,17 +569,13 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2)
 
        // as the fifth paramater, which is the size of a dContact structure. That made sense didn't it?  
 
-    if (int numc = dCollide(o1, o2, max_contacts, &contact[0].geom, sizeof(dContact)))
-
-    {
+    if (int numc = dCollide(o1, o2, max_contacts, &contact[0].geom, sizeof(dContact))) {
 
         // To add each contact point found to our joint group we call dJointCreateContact which is just one of the many
 
            // different joint types available.  
 
-        for (i = 0; i < numc; i++)
-
-        {
+        for (i = 0; i < numc; i++) {
 
             // dJointCreateContact needs to know which world and joint group to work with as well as the dContact
 
@@ -646,18 +586,33 @@ static void nearCallback (void *data, dGeomID o1, dGeomID o2)
             dJointID c = dJointCreateContact(world, contactgroup, contact + i);
 
             dJointAttach(c, b1, b2);
-
         }
-
     }
-
+}
+void nodeUpdateTransRot(sceneNode* node) {
+	const dReal *pos = dBodyGetPosition(node->meshGL->body);
+	const dReal *rot = dBodyGetRotation(node->meshGL->body);
+	node->translation[0] = pos[0];
+   	node->translation[1] = pos[1];
+	node->translation[2] = pos[2];
+	// ODE rotation vec is in the following convention
+	// r00 r01 r02 x
+	// r10 r11 r12 y
+	// r20 r21 r22 z
+	// where x, y, z are undefined
+	node->rotation[0][0] = rot[0];
+	node->rotation[0][1] = rot[1];
+	node->rotation[0][2] = rot[2];
+	node->rotation[1][0] = rot[4];
+	node->rotation[1][1] = rot[5];
+	node->rotation[1][2] = rot[6];
+	node->rotation[2][0] = rot[8];
+	node->rotation[2][1] = rot[9];
+	node->rotation[2][2] = rot[10];
 }
 
 
-
 void render(void) {
-
-
 	GLdouble identity[4][4];
 	mat44Identity(identity);
 
@@ -698,94 +653,22 @@ void render(void) {
 	
 	//Seriously, no sceneSetTranslation() usage here??
 	// I changed it to handle this operation.
+	nodeUpdateTransRot(&ground_node);
+	nodeUpdateTransRot(&cross_node);
+	nodeUpdateTransRot(&supportFL_node);
+	nodeUpdateTransRot(&supportFR_node);
+	nodeUpdateTransRot(&supportBL_node);
+	nodeUpdateTransRot(&supportBR_node);
+	nodeUpdateTransRot(&baseL_node);
+	nodeUpdateTransRot(&baseR_node);
+	nodeUpdateTransRot(&arm_node);
+	nodeUpdateTransRot(&counterweight_node);
+	// nodeUpdateTransRot(&);
+	// nodeUpdateTransRot(&);
+	// nodeUpdateTransRot(&);
+	// nodeUpdateTransRot(&);
 
-	const dReal *pos1 = dBodyGetPosition(nodeL.meshGL->body);
-   	/*Test and should work
-	sceneSetTranslation(&nodeL, pos1); */
-	nodeL.translation[0] = pos1[0];
-   	nodeL.translation[1] = pos1[1];
-	nodeL.translation[2] = pos1[2];
 
-	const dReal *pos2 = dBodyGetPosition(ground_node.meshGL->body);	
-	ground_node.translation[0] = pos2[0];	
-   	ground_node.translation[1] = pos2[1];
-	ground_node.translation[2] = pos2[2];
-
-	const dReal *pos3 = dBodyGetPosition(cross_node.meshGL->body);	
-	cross_node.translation[0] = pos3[0];	
-   	cross_node.translation[1] = pos3[1];
-	cross_node.translation[2] = pos3[2];
-
-	const dReal *pos4 = dBodyGetPosition(supportFL_node.meshGL->body);
-	supportFL_node.translation[0] = pos4[0];	
-   	supportFL_node.translation[1] = pos4[1];
-	supportFL_node.translation[2] = pos4[2];
-
-	const dReal *pos5 = dBodyGetPosition(supportFR_node.meshGL->body);
-	supportFR_node.translation[0] = pos5[0];	
-   	supportFR_node.translation[1] = pos5[1];
-	supportFR_node.translation[2] = pos5[2];
-
-	const dReal *pos6 = dBodyGetPosition(supportBL_node.meshGL->body);
-	supportBL_node.translation[0] = pos6[0];	
-   	supportBL_node.translation[1] = pos6[1];
-	supportBL_node.translation[2] = pos6[2];
-
-	const dReal *pos7 = dBodyGetPosition(supportBR_node.meshGL->body);
-	supportBR_node.translation[0] = pos7[0];	
-   	supportBR_node.translation[1] = pos7[1];
-	supportBR_node.translation[2] = pos7[2];
-
-//     // GLdouble posGL[3];
-//     // vecCopy(3, pos1, posGL);
-//     // sceneSetTranslation(&nodeL, posGL);
-    
-// //    sceneSetRotation(&nodeL, rot1);
-//     printf("nodeL translations:\n");
-//     printf("x = %f,y = %f, z = %f\n", nodeL.translation[0],nodeL.translation[1], nodeL.translation[2]);
-
-		// if (pos1[0] > 300 || pos1[0] < -300 || pos1[1] > 300 || pos1[1] < -300 || pos1[2] > 1000 || pos1[2] < -200) {
-		// 	printf("body out of bounds\n");
-		// 	exit(999);
-		// }
-    // printf("body translations:\n");
-    // printf("x = %f,y = %f, z = %f\n", pos1[0],pos1[1], pos1[2]);
-
-    //getchar();
-	//Derefernce rot1?
-	// mat33Copy(rot1, nodeL.rotation);
-	// nodeL.rotation = rot1;
-	// nodeL.rotation[0][0] = rot1[0];
-	// nodeL.rotation[0][1] = rot1[1];
-	// nodeL.rotation[0][2] = rot1[2];
-	// nodeL.rotation[1][0] = rot1[3];
-	// nodeL.rotation[1][1] = rot1[4];
-	// nodeL.rotation[1][2] = rot1[5];
-	// nodeL.rotation[2][0] = rot1[6];
-	// nodeL.rotation[2][1] = rot1[7];
-	// nodeL.rotation[2][2] = rot1[8];
-
-    // printf("\n");
-    // printf("%f   %f   %f\n", rot1[0], rot1[1], rot1[2]);
-    // printf("%f   %f   %f\n", rot1[3], rot1[4], rot1[6]);
-    // printf("%f   %f   %f\n", rot1[7], rot1[8], rot1[9]);
-    // printf("%f   %f   %f\n", rot1[10], rot1[11], rot1[12]);
-    // printf("\n");
-
-	// nodeL.rotation[0][0] = rot1[0];
-	// nodeL.rotation[1][0] = rot1[1];
-	// nodeL.rotation[2][0] = rot1[2];
-	// nodeL.rotation[0][1] = rot1[3];
-	// nodeL.rotation[1][1] = rot1[4];
-	// nodeL.rotation[2][1] = rot1[5];
-	// nodeL.rotation[0][2] = rot1[6];
-	// nodeL.rotation[1][2] = rot1[7];
-	// nodeL.rotation[2][2] = rot1[8];
-
-	// const dReal *a = dBodyGetPosition(nodeL.body);
-
-	// printf("%f\n", a[2]);
-	// printf("%f\n", b[2]);
 
 
 }
@@ -796,11 +679,16 @@ void startODE(void){
 	space = dSimpleSpaceCreate(0);
 	contactgroup = dJointGroupCreate(0);
 	trebuchetJointGroup = dJointGroupCreate(100);
+<<<<<<< HEAD
 	dWorldSetGravity(world, 0.0, 0.0, setGravity);
+=======
+	dWorldSetGravity(world, 0.0, 0.0, -9.81);
+	// dWorldSetGravity(world, 0.0, 0.0, -0.0);
+>>>>>>> f49c1c6990edd43c2732f5604f7747b44cc2fca1
 	dWorldSetContactSurfaceLayer(world, 0.001);
 	//error correction parameters. Sets the world to double-precision
 	dWorldSetERP(world, 0.3);
-	dWorldSetCFM(world, (dReal) pow(1,-10) );
+	dWorldSetCFM(world, (dReal) pow(10,-10));
 	ground = dCreatePlane(space, 0.0, 0.0, 1.0, 0.0);
 	
 }
